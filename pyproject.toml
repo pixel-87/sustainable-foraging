@@ -23,6 +23,12 @@ dependencies = [
 dev = [
   "pytest",
   "ruff",
+  "torch",
+  "stable-baselines3",
+  "supersuit",
+  "tensorboard",
+  "setuptools>=68.0.0",
+  "matplotlib",
 ]
 test = ["pytest"]
 train = [
@@ -30,6 +36,7 @@ train = [
   "stable-baselines3",
   "supersuit",
   "tensorboard",
+  "setuptools>=68.0.0",
 ]
 
 [project.urls]
@@ -88,4 +95,14 @@ testpaths = [
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::UserWarning",
+]
+
+[dependency-groups]
+dev = [
+    "matplotlib>=3.5.3",
+    "setuptools>=68.0.0",
+    "stable-baselines3>=2.0.0",
+    "supersuit>=3.8.1",
+    "tensorboard>=2.11.2",
+    "torch>=1.13.1",
 ]

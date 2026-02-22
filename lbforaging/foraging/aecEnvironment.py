@@ -70,6 +70,7 @@ class ForagingEnv(AECEnv):
     metadata: ClassVar[dict] = {
         "render_modes": ["human", "rgb_array"],
         "render_fps": 5,
+        "is_parallelizable": True,
     }
 
     action_set: ClassVar[list] = [Action.NORTH, Action.SOUTH, Action.WEST, Action.EAST, Action.LOAD]
@@ -260,7 +261,7 @@ class ForagingEnv(AECEnv):
         high_obs = np.array(max_obs)
         assert low_obs.shape == high_obs.shape
         return gym.spaces.Box(
-            low=low_obs, high=high_obs, shape=[len(low_obs)], dtype=np.float32
+            low=low_obs, high=high_obs, shape=low_obs.shape, dtype=np.float32
         )
 
     @classmethod
@@ -614,7 +615,17 @@ class ForagingEnv(AECEnv):
         return nobs
 
     def _get_info(self):
-        return {}
+        return {
+            "foods_collected": self._step_foods_collected,
+            "cooperative_collections": self._step_cooperative_collections,
+            "solo_collections": self._step_solo_collections,
+            "failed_loads": self._step_failed_loads,
+            "collisions": self._step_collisions,
+            "food_remaining": int(np.count_nonzero(self.field)),
+            "food_total": self.max_num_food,
+            "action_counts": dict(self._step_action_counts),
+            "per_agent_rewards": [p.reward for p in self.players],
+        }
 
     def reset(self, seed=None, options=None):
         if seed is not None:
@@ -634,6 +645,14 @@ class ForagingEnv(AECEnv):
         self.current_step = 0
         self._game_over = False
         self._gen_valid_moves()
+
+        # Step-level metric counters (reset each step in _process_actions)
+        self._step_foods_collected = 0
+        self._step_cooperative_collections = 0
+        self._step_solo_collections = 0
+        self._step_failed_loads = 0
+        self._step_collisions = 0
+        self._step_action_counts = {}
 
         self.agents = self.possible_agents[:]
         self.rewards = {agent: 0 for agent in self.agents}
@@ -768,6 +787,7 @@ class ForagingEnv(AECEnv):
         # do movements for non-colliding players
         for k, v in collisions.items():
             if len(v) > 1:  # collision
+                self._step_collisions += 1
                 continue
             v[0].position = k
 
@@ -798,11 +818,18 @@ class ForagingEnv(AECEnv):
 
             if adj_player_level < food:
                 # failed to load
+                self._step_failed_loads += 1
                 for a in adj_players:
                     a.reward -= self.penalty
                 continue
 
             # else the food was loaded and each player scores points
+            self._step_foods_collected += 1
+            if len(adj_players) > 1:
+                self._step_cooperative_collections += 1
+            else:
+                self._step_solo_collections += 1
+
             for a in adj_players:
                 a.reward = float(a.level * food)
                 if self._normalize_reward and self._food_spawned > 0:
@@ -831,7 +858,21 @@ class ForagingEnv(AECEnv):
         for p in self.players:
             p.reward = 0
 
+        # Reset per-step metric counters
+        self._step_foods_collected = 0
+        self._step_cooperative_collections = 0
+        self._step_solo_collections = 0
+        self._step_failed_loads = 0
+        self._step_collisions = 0
+
         actions = self._validate_actions(actions)
+
+        # Track action distribution
+        self._step_action_counts = {}
+        for a in actions:
+            name = a.name
+            self._step_action_counts[name] = self._step_action_counts.get(name, 0) + 1
+
         loading_players = self._resolve_player_movements(actions)
         self._process_food_loading(loading_players)
         self._update_game_state()
