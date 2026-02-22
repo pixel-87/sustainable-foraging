@@ -177,3 +177,6 @@ result/
 
 # End of https://www.gitignore.io/api/linux,python,windows,visualstudiocode
 .direnv/
+lb_foraging_tensorboard/
+logs/
+ppo_lbforaging.zip
