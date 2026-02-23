@@ -333,7 +333,7 @@ def train(
         print(f"  Min / Max      : {min(eval_rewards):.4f} / {max(eval_rewards):.4f}")
 
     env.close()
-    print(f"\nDone! Visualize with:  uv run python visualize_logs.py {log_dir}")
+    print(f"\nDone! Visualize with:  uv run python -m scripts.visualize_logs {log_dir}")
 
 
 # ---------------------------------------------------------------------------

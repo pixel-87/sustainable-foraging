@@ -2,10 +2,11 @@
 """Visualize training metrics from CSV logs.
 
 Usage:
-    uv run python visualize_logs.py                    # latest run
-    uv run python visualize_logs.py logs/run_xxx       # specific run
-    uv run python visualize_logs.py --compare          # compare all runs
+    uv run python -m scripts.visualize_logs                    # latest run
+    uv run python -m scripts.visualize_logs logs/run_xxx       # specific run
+    uv run python -m scripts.visualize_logs --compare          # compare all runs
 """
+
 import argparse
 import csv
 import json
@@ -17,27 +18,29 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 
 # Styling
-plt.rcParams.update({
-    "figure.facecolor": "#1a1a2e",
-    "axes.facecolor": "#16213e",
-    "axes.edgecolor": "#444",
-    "axes.labelcolor": "#eee",
-    "axes.titlesize": 12,
-    "axes.titleweight": "bold",
-    "text.color": "#eee",
-    "xtick.color": "#aaa",
-    "ytick.color": "#aaa",
-    "grid.color": "#333",
-    "grid.alpha": 0.4,
-    "lines.linewidth": 1.2,
-    "figure.titlesize": 15,
-    "figure.titleweight": "bold",
-    "legend.facecolor": "#16213e",
-    "legend.edgecolor": "#444",
-    "legend.fontsize": 8,
-    "font.family": "sans-serif",
-    "font.size": 9,
-})
+plt.rcParams.update(
+    {
+        "figure.facecolor": "#1a1a2e",
+        "axes.facecolor": "#16213e",
+        "axes.edgecolor": "#444",
+        "axes.labelcolor": "#eee",
+        "axes.titlesize": 12,
+        "axes.titleweight": "bold",
+        "text.color": "#eee",
+        "xtick.color": "#aaa",
+        "ytick.color": "#aaa",
+        "grid.color": "#333",
+        "grid.alpha": 0.4,
+        "lines.linewidth": 1.2,
+        "figure.titlesize": 15,
+        "figure.titleweight": "bold",
+        "legend.facecolor": "#16213e",
+        "legend.edgecolor": "#444",
+        "legend.fontsize": 8,
+        "font.family": "sans-serif",
+        "font.size": 9,
+    }
+)
 
 COLORS = {
     "primary": "#e94560",
@@ -93,14 +96,16 @@ def load_csv(csv_path: str) -> dict:
     data["coop_rate"] = data["coop_collections"] / np.maximum(data["foods_collected"], 1)
     data["efficiency"] = data["foods_collected"] / np.maximum(data["length"], 1)
     total_actions = (
-        data["actions_north"] + data["actions_south"] +
-        data["actions_east"] + data["actions_west"] +
-        data["actions_load"] + data["actions_none"]
+        data["actions_north"]
+        + data["actions_south"]
+        + data["actions_east"]
+        + data["actions_west"]
+        + data["actions_load"]
+        + data["actions_none"]
     )
     data["load_fraction"] = data["actions_load"] / np.maximum(total_actions, 1)
     data["move_fraction"] = (
-        data["actions_north"] + data["actions_south"] +
-        data["actions_east"] + data["actions_west"]
+        data["actions_north"] + data["actions_south"] + data["actions_east"] + data["actions_west"]
     ) / np.maximum(total_actions, 1)
 
     return data
@@ -172,10 +177,17 @@ def plot_single_run(log_dir: Path, save: bool = True):
     # ── 3. Foods Collected Per Episode ──
     ax = fig.add_subplot(gs[0, 2])
     ax.plot(ts, data["foods_collected"], alpha=0.15, color=COLORS["green"])
-    ax.plot(ts, smooth(data["foods_collected"]), color=COLORS["green"], linewidth=2, label="Smoothed")
+    ax.plot(
+        ts, smooth(data["foods_collected"]), color=COLORS["green"], linewidth=2, label="Smoothed"
+    )
     food_total = config.get("environment", {}).get("max_num_food", "?")
-    ax.axhline(y=food_total if isinstance(food_total, (int, float)) else 0,
-               color=COLORS["accent"], linestyle="--", alpha=0.5, label=f"Max ({food_total})")
+    ax.axhline(
+        y=food_total if isinstance(food_total, (int, float)) else 0,
+        color=COLORS["accent"],
+        linestyle="--",
+        alpha=0.5,
+        label=f"Max ({food_total})",
+    )
     ax.set_xlabel("Timesteps")
     ax.set_ylabel("Foods")
     ax.set_title("Foods Collected")
@@ -206,7 +218,9 @@ def plot_single_run(log_dir: Path, save: bool = True):
     # ── 6. Food Remaining at Episode End ──
     ax = fig.add_subplot(gs[1, 2])
     ax.plot(ts, data["food_remaining"], alpha=0.15, color=COLORS["accent"])
-    ax.plot(ts, smooth(data["food_remaining"]), color=COLORS["accent"], linewidth=2, label="Smoothed")
+    ax.plot(
+        ts, smooth(data["food_remaining"]), color=COLORS["accent"], linewidth=2, label="Smoothed"
+    )
     ax.set_xlabel("Timesteps")
     ax.set_ylabel("Remaining")
     ax.set_title("Food Remaining at Episode End")
@@ -219,8 +233,14 @@ def plot_single_run(log_dir: Path, save: bool = True):
     bins = np.arange(0, n, window)
     action_names = ["NORTH", "SOUTH", "EAST", "WEST", "LOAD", "NONE"]
     action_keys = [f"actions_{a.lower()}" for a in action_names]
-    action_colors = [COLORS["secondary"], COLORS["cyan"], COLORS["green"],
-                     COLORS["accent"], COLORS["primary"], "#666"]
+    action_colors = [
+        COLORS["secondary"],
+        COLORS["cyan"],
+        COLORS["green"],
+        COLORS["accent"],
+        COLORS["primary"],
+        "#666",
+    ]
 
     stacked = np.zeros((len(bins), len(action_names)))
     for j, key in enumerate(action_keys):
@@ -245,8 +265,13 @@ def plot_single_run(log_dir: Path, save: bool = True):
     # ── 8. Per-Agent Rewards ──
     ax = fig.add_subplot(gs[2, 1])
     agent_keys = [k for k in data if k.startswith("reward_agent_")]
-    agent_colors_list = [COLORS["primary"], COLORS["secondary"], COLORS["green"],
-                         COLORS["accent"], COLORS["purple"]]
+    agent_colors_list = [
+        COLORS["primary"],
+        COLORS["secondary"],
+        COLORS["green"],
+        COLORS["accent"],
+        COLORS["purple"],
+    ]
     for j, key in enumerate(agent_keys):
         label = key.replace("reward_", "")
         c = agent_colors_list[j % len(agent_colors_list)]
@@ -368,7 +393,7 @@ def main():
     else:
         log_dir = find_latest_run(logs_root)
         if not log_dir:
-            print("No runs found. Train first: uv run python train_sb3.py")
+            print("No runs found. Train first: uv run python -m scripts.train_sb3")
             sys.exit(1)
         print(f"Using latest run: {log_dir}")
 

@@ -9,7 +9,7 @@
     *   `test_reward_cooperative_loading`: Verifies shared rewards.
 
 ### **Interactive Play (Original Env)**
-**Command:** `python human_play.py`
+**Command:** `python -m scripts.human_play`
 *   **Purpose:** Play the game manually to understand the mechanics.
 *   **Options:**
     *   `--env Foraging-8x8-2p-2f-v3`: Select specific map configuration.
@@ -19,17 +19,17 @@
 
 
 ### **Train a New Model**
-**Command:** `python train_sb3.py --preset fair`
+**Command:** `python -m scripts.train_sb3 --preset fair`
 *   **Purpose:** Trains a PPO agent from scratch using the AEC environment.
 *   **Output:** Saves logs/config/model under `logs/<run_name>/`.
 *   **Preset tiers:**
     *   `easy`: High regeneration, generous energy budget.
     *   `fair`: Balanced benchmark default.
     *   `hard`: Low regeneration, high energy pressure.
-*   **Tip:** `python train_sb3.py --list-presets`
+*   **Tip:** `python -m scripts.train_sb3 --list-presets`
 
 ### **Visual Inference (Run Saved Model)**
-**Command:** `python inference_sb3.py --preset fair --model logs/<run_name>/model`
+**Command:** `python -m scripts.inference_sb3 --preset fair --model logs/<run_name>/model`
 *   **Purpose:** Watch the trained agents play in real-time.
 *   **Requirement:** Use the same preset as training.
 *   **Key Features:**
@@ -38,8 +38,8 @@
 
 
 ### **Environment Versions**
-*   **`GymForagingEnv`** (Original): The standard Gym environment. Used by `human_play.py`. Agents often have hardcoded heuristic controllers (`H1-H4`).
-*   **`AECForagingEnv`** (New): The PettingZoo AEC implementation. Used by `train_sb3.py`. Designed for multi-agent RL from scratch.
+*   **`GymForagingEnv`** (Original): The standard Gym environment. Used by `scripts.human_play`. Agents often have hardcoded heuristic controllers (`H1-H4`).
+*   **`AECForagingEnv`** (New): The PettingZoo AEC implementation. Used by `scripts.train_sb3`. Designed for multi-agent RL from scratch.
 
 ### **Policy Types**
 *   **`MlpPolicy`**: Simple "feed-forward" network. Treats the board as a flat list of numbers. Good for simple states, bad for grids. *Current active config.*
@@ -53,12 +53,12 @@
 Use this to check that the environment loop works without any training intelligence (random actions).
 
 ### **Run Random Agents (Gym Version)**
-**Command:** `python lbforaging.py --render --episodes 5`
+**Command:** `python -m scripts.lbforaging --render --episodes 5`
 *   **Purpose:** Runs the *original* Gym environment with random actions.
 *   **Output:** Prints returns and renders the game.
 
 ### **Run Random Agents (AEC Version)**
-**Command:** `python lbforaging.py --render --aec --episodes 5`
+**Command:** `python -m scripts.lbforaging --render --aec --episodes 5`
 *   **Purpose:** Runs the *new PettingZoo AEC* environment with random actions.
 *   **Why use this?**
     *   Verifies that your AEC `step()` and `render()` logic doesn't crash.

@@ -35,7 +35,6 @@ def _game_loop(env, render):
     print("Returns: ", returns)
 
 
-
 def _parse_env_id(env_id: str):
     """Parse simple env ids like Foraging-8x8-2p-2f-v3 -> (size, players, foods).
     Falls back to (8,2,2) on failure.
@@ -132,7 +131,9 @@ def main(episodes=1, render=False, use_aec=False, env_id="Foraging-8x8-2p-2f-v3"
 
             # episode finished
             total = sum(ep_returns.values())
-            print(f"Episode {ep}/{episodes} finished — total return: {total:.3f} — per-agent: {ep_returns}")
+            print(
+                f"Episode {ep}/{episodes} finished — total return: {total:.3f} — per-agent: {ep_returns}"
+            )
 
         env.close()
     else:
@@ -146,11 +147,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Play the level foraging game.")
 
     parser.add_argument("--render", action="store_true")
-    parser.add_argument(
-        "--episodes", type=int, default=1, help="How many episodes to run"
-    )
+    parser.add_argument("--episodes", type=int, default=1, help="How many episodes to run")
     parser.add_argument("--aec", action="store_true", help="Use PettingZoo AEC env")
-    parser.add_argument("--env", type=str, default="Foraging-8x8-2p-2f-v3", help="Env id to use (registered id or Foraging-... for AEC parsing)")
+    parser.add_argument(
+        "--env",
+        type=str,
+        default="Foraging-8x8-2p-2f-v3",
+        help="Env id to use (registered id or Foraging-... for AEC parsing)",
+    )
 
     args = parser.parse_args()
     main(args.episodes, args.render, use_aec=args.aec, env_id=args.env)

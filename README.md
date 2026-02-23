@@ -73,9 +73,9 @@ This repository now includes a formalized sustainable-foraging benchmark configu
 - Benchmark name: `sustainable_v1`
 - Presets: `easy`, `fair`, `hard`
 - Scripts:
-  - Train: `python train_sb3.py --preset fair`
-  - Inference: `python inference_sb3.py --preset fair --model logs/<run_name>/model`
-  - Show presets: `python train_sb3.py --list-presets`
+  - Train: `python -m scripts.train_sb3 --preset fair`
+  - Inference: `python -m scripts.inference_sb3 --preset fair --model logs/<run_name>/model`
+  - Show presets: `python -m scripts.train_sb3 --list-presets`
 
 Use the same preset across algorithm runs to keep comparisons fair.
 
@@ -164,11 +164,11 @@ for a in adj_players: # the players that participated in loading the food
 
 We also provide a simple script that allows you to play the environment as a human. This is useful for debugging and understanding the environment dynamics. To play the environment, run the following command:
 ```sh
-python human_play.py --env <env_name>
+python -m scripts.human_play --env <env_name>
 ```
 where `<env_name>` is the name of the environment you want to play. For example, to play an LBF task with two agents and one food in a 8x8 grid, run:
 ```sh
-python human_play.py --env Foraging-8x8-2p-1f-v3
+python -m scripts.human_play --env Foraging-8x8-2p-1f-v3
 ```
 
 Within the script, you can control a single agent at the time using the following keys:

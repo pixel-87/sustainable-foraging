@@ -75,7 +75,7 @@ def main():
         model = PPO.load(args.model)
     except FileNotFoundError:
         print(
-            f"Error: Could not find '{args.model}.zip'. Make sure you have run train_sb3.py first."
+            f"Error: Could not find '{args.model}.zip'. Make sure you have run scripts.train_sb3 first."
         )
         return
 

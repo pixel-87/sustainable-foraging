@@ -13,6 +13,7 @@ You can control the interaction with the following keys:
 - D: display agent info (per step)
 - ESC: exit
 """
+
 from argparse import ArgumentParser
 import warnings
 
@@ -128,9 +129,7 @@ class InteractiveLBFEnv:
             self.current_action = Action.NONE
         elif k == key.TAB:
             self.current_action = None
-            self.current_agent_index = self._increment_current_agent_index(
-                self.current_agent_index
-            )
+            self.current_agent_index = self._increment_current_agent_index(self.current_agent_index)
             if self.display_info:
                 print(f"Now selected: {self._get_current_agent_info()}")
         elif k == key.R:
@@ -156,7 +155,9 @@ class InteractiveLBFEnv:
         while self.running:
             if self.reset:
                 if self.display_info:
-                    print(f"Finished episode with episodic returns: {[round(ret, 3) for ret in self.ep_returns]}")
+                    print(
+                        f"Finished episode with episodic returns: {[round(ret, 3) for ret in self.ep_returns]}"
+                    )
                     print()
                 obss, _ = self.env.reset()
                 self.reset = False
@@ -168,7 +169,10 @@ class InteractiveLBFEnv:
                     self._display_info(obss, [0] * self.n_agents, False)
 
             if self.current_action is not None:
-                actions = [Action.NONE if i not in self.loading_agents else Action.LOAD for i in range(self.n_agents)]
+                actions = [
+                    Action.NONE if i not in self.loading_agents else Action.LOAD
+                    for i in range(self.n_agents)
+                ]
                 actions[self.current_agent_index] = self.current_action
                 obss, rews, done, trunc, info = self.env.step([act.value for act in actions])
                 self.ep_returns += np.array(rews)
@@ -183,7 +187,6 @@ class InteractiveLBFEnv:
                 self.current_action = None
             self.env.render()
         self.env.close()
-
 
 
 if __name__ == "__main__":
