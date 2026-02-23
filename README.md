@@ -66,6 +66,19 @@ pip install -e .
 <!-- USAGE EXAMPLES -->
 # Usage
 
+## Sustainable Benchmark Presets
+
+This repository now includes a formalized sustainable-foraging benchmark configuration for AEC training scripts.
+
+- Benchmark name: `sustainable_v1`
+- Presets: `easy`, `fair`, `hard`
+- Scripts:
+  - Train: `python train_sb3.py --preset fair`
+  - Inference: `python inference_sb3.py --preset fair --model logs/<run_name>/model`
+  - Show presets: `python train_sb3.py --list-presets`
+
+Use the same preset across algorithm runs to keep comparisons fair.
+
 Create environments with the gym framework.
 First import
 ```python
@@ -208,4 +221,3 @@ Within the script, you can control a single agent at the time using the followin
 Filippos Christianos - f.christianos@ed.ac.uk
 
 Project Link: [https://github.com/semitable/lb-foraging](https://github.com/semitable/lb-foraging)
-

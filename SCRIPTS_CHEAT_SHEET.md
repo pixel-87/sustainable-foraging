@@ -19,18 +19,19 @@
 
 
 ### **Train a New Model**
-**Command:** `python train_sb3.py`
+**Command:** `python train_sb3.py --preset fair`
 *   **Purpose:** Trains a PPO agent from scratch using the AEC environment.
-*   **Output:** Saves the trained model to `ppo_lbforaging.zip`.
-*   **Configuration (inside script):**
-    *   `grid_observation=True`: Use grid observations (flattened for MLP).
-    *   `MlpPolicy`: Uses a Multi-Layer Perceptron (simple neural net).
-    *   `total_timesteps`: Duration of training (currently 200k).
+*   **Output:** Saves logs/config/model under `logs/<run_name>/`.
+*   **Preset tiers:**
+    *   `easy`: High regeneration, generous energy budget.
+    *   `fair`: Balanced benchmark default.
+    *   `hard`: Low regeneration, high energy pressure.
+*   **Tip:** `python train_sb3.py --list-presets`
 
 ### **Visual Inference (Run Saved Model)**
-**Command:** `python inference_sb3.py`
+**Command:** `python inference_sb3.py --preset fair --model logs/<run_name>/model`
 *   **Purpose:** Watch the trained agents play in real-time.
-*   **Requirement:** Must run `train_sb3.py` first to generate the model file.
+*   **Requirement:** Use the same preset as training.
 *   **Key Features:**
     *   `render_mode="human"`: Opens a window to show the game.
     *   `deterministic=True`: Uses the best predicted action (no random exploration).

@@ -1,0 +1,66 @@
+"""Formal benchmark presets for sustainable foraging experiments.
+
+These presets define the task, not the training hyperparameters.
+Use the same preset across algorithms/libraries for fair comparisons.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any
+
+
+BENCHMARK_NAME = "sustainable_v1"
+
+SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
+    "easy": {
+        "players": 2,
+        "max_energy": 120,
+        "food_energy_value": 12,
+        "energy_depletion_rate": 1,
+        "food_regeneration_rate": 0.20,
+        "num_food_zones": 3,
+        "field_size": (8, 8),
+        "max_num_food": 3,
+        "sight": 8,
+        "max_episode_steps": 60,
+        "grid_observation": True,
+    },
+    "fair": {
+        "players": 2,
+        "max_energy": 100,
+        "food_energy_value": 10,
+        "energy_depletion_rate": 1,
+        "food_regeneration_rate": 0.10,
+        "num_food_zones": 2,
+        "field_size": (8, 8),
+        "max_num_food": 2,
+        "sight": 8,
+        "max_episode_steps": 50,
+        "grid_observation": True,
+    },
+    "hard": {
+        "players": 2,
+        "max_energy": 80,
+        "food_energy_value": 8,
+        "energy_depletion_rate": 2,
+        "food_regeneration_rate": 0.03,
+        "num_food_zones": 1,
+        "field_size": (8, 8),
+        "max_num_food": 2,
+        "sight": 8,
+        "max_episode_steps": 50,
+        "grid_observation": True,
+    },
+}
+
+
+def list_presets() -> tuple[str, ...]:
+    return tuple(SUSTAINABLE_PRESETS.keys())
+
+
+def get_preset(name: str) -> dict[str, Any]:
+    if name not in SUSTAINABLE_PRESETS:
+        valid = ", ".join(list_presets())
+        raise ValueError(f"Unknown preset '{name}'. Choose one of: {valid}")
+    return deepcopy(SUSTAINABLE_PRESETS[name])

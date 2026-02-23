@@ -7,6 +7,7 @@ Logs training metrics to:
   - TensorBoard events       (./logs/<run_name>/tb/)
   - Saved model              (./logs/<run_name>/model.zip)
 """
+
 import argparse
 import csv
 import json
@@ -21,6 +22,11 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 
 from lbforaging.foraging import AECForagingEnv
+from lbforaging.foraging.sustainable_benchmark import (
+    BENCHMARK_NAME,
+    get_preset,
+    list_presets,
+)
 from pettingzoo.utils import aec_to_parallel
 
 
@@ -160,27 +166,30 @@ class MetricsCallback(BaseCallback):
 
         # -- CSV --
         if self._csv_writer:
-            self._csv_writer.writerow([
-                self._ep_count,
-                self.num_timesteps,
-                time.time(),
-                round(ep_reward, 6),
-                ep_length,
-                foods,
-                coop,
-                solo,
-                failed,
-                food_remaining,
-                collisions,
-                ac.get("NORTH", 0),
-                ac.get("SOUTH", 0),
-                ac.get("EAST", 0),
-                ac.get("WEST", 0),
-                ac.get("LOAD", 0),
-                ac.get("NONE", 0),
-                json.dumps(agent_rewards),
-            ])
-            self._csv_file.flush()
+            self._csv_writer.writerow(
+                [
+                    self._ep_count,
+                    self.num_timesteps,
+                    time.time(),
+                    round(ep_reward, 6),
+                    ep_length,
+                    foods,
+                    coop,
+                    solo,
+                    failed,
+                    food_remaining,
+                    collisions,
+                    ac.get("NORTH", 0),
+                    ac.get("SOUTH", 0),
+                    ac.get("EAST", 0),
+                    ac.get("WEST", 0),
+                    ac.get("LOAD", 0),
+                    ac.get("NONE", 0),
+                    json.dumps(agent_rewards),
+                ]
+            )
+            if self._csv_file is not None:
+                self._csv_file.flush()
 
     def _reset_slot(self, slot: int):
         """Reset accumulators for one vec-env slot."""
@@ -204,31 +213,22 @@ class MetricsCallback(BaseCallback):
 # ---------------------------------------------------------------------------
 # Environment factory
 # ---------------------------------------------------------------------------
-ENV_CONFIG = dict(
-    players=2,
-    max_energy=100,
-    food_energy_value=10,
-    energy_depletion_rate=1,
-    food_regeneration_rate=0.1,
-    num_food_zones=2,
-    field_size=(8, 8),
-    max_num_food=2,
-    sight=8,
-    max_episode_steps=50,
-    grid_observation=True,
-)
+DEFAULT_PRESET = "fair"
 
 
 def make_env(config=None):
     """Create and wrap the foraging environment for SB3 training."""
-    cfg = config or ENV_CONFIG
+    cfg = config or get_preset(DEFAULT_PRESET)
     env = AECForagingEnv(**cfg)
     env = aec_to_parallel(env)
     env = ss.pad_observations_v0(env)
     env = ss.pad_action_space_v0(env)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(
-        env, num_vec_envs=1, num_cpus=0, base_class="stable_baselines3"
+        env,
+        num_vec_envs=1,
+        num_cpus=0,
+        base_class="stable_baselines3",
     )
     return env
 
@@ -236,7 +236,12 @@ def make_env(config=None):
 # ---------------------------------------------------------------------------
 # Training
 # ---------------------------------------------------------------------------
-def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3):
+def train(
+    total_timesteps: int = 200_000,
+    run_name: str | None = None,
+    lr: float = 1e-3,
+    preset: str = DEFAULT_PRESET,
+):
     if run_name is None:
         run_name = time.strftime("run_%Y%m%d_%H%M%S")
 
@@ -247,15 +252,19 @@ def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3
     model_path = log_dir / "model"
     config_path = log_dir / "config.json"
 
+    env_config = get_preset(preset)
+
     # Save experiment config for reproducibility
     experiment_config = {
+        "benchmark": BENCHMARK_NAME,
+        "preset": preset,
         "run_name": run_name,
         "total_timesteps": total_timesteps,
         "learning_rate": lr,
         "batch_size": 256,
         "algorithm": "PPO",
         "policy": "MlpPolicy",
-        "environment": ENV_CONFIG,
+        "environment": env_config,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
     # Convert tuples to lists for JSON serialization
@@ -266,6 +275,8 @@ def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3
         json.dump(serializable_config, f, indent=2)
 
     print(f"Run name   : {run_name}")
+    print(f"Benchmark  : {BENCHMARK_NAME}")
+    print(f"Preset     : {preset}")
     print(f"Log dir    : {log_dir}")
     print(f"Timesteps  : {total_timesteps:,}")
     print(f"LR         : {lr}")
@@ -273,7 +284,7 @@ def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3
     print()
 
     # 1. Create environment
-    env = make_env()
+    env = make_env(env_config)
 
     # 2. Create PPO model
     model = PPO(
@@ -299,7 +310,7 @@ def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3
     # 6. Quick evaluation
     print("\nEvaluating trained model (10 episodes)...")
     del env
-    env = make_env()
+    env = make_env(env_config)
 
     obs = env.reset()
     eval_rewards = []
@@ -331,16 +342,43 @@ def train(total_timesteps: int = 200_000, run_name: str = None, lr: float = 1e-3
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO on LB-Foraging")
     parser.add_argument(
-        "--timesteps", "-t", type=int, default=200_000,
-        help="Total training timesteps (default: 200000)"
+        "--timesteps",
+        "-t",
+        type=int,
+        default=200_000,
+        help="Total training timesteps (default: 200000)",
     )
     parser.add_argument(
-        "--name", "-n", type=str, default=None,
-        help="Run name (default: auto-generated timestamp)"
+        "--name",
+        "-n",
+        type=str,
+        default=None,
+        help="Run name (default: auto-generated timestamp)",
+    )
+    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate (default: 0.001)")
+    parser.add_argument(
+        "--preset",
+        type=str,
+        default=DEFAULT_PRESET,
+        choices=list_presets(),
+        help="Sustainable benchmark preset (default: fair)",
     )
     parser.add_argument(
-        "--lr", type=float, default=1e-3,
-        help="Learning rate (default: 0.001)"
+        "--list-presets",
+        action="store_true",
+        help="Print available sustainable benchmark presets and exit",
     )
     args = parser.parse_args()
-    train(total_timesteps=args.timesteps, run_name=args.name, lr=args.lr)
+
+    if args.list_presets:
+        print(f"Benchmark: {BENCHMARK_NAME}")
+        for preset_name in list_presets():
+            print(f"- {preset_name}: {get_preset(preset_name)}")
+        raise SystemExit(0)
+
+    train(
+        total_timesteps=args.timesteps,
+        run_name=args.name,
+        lr=args.lr,
+        preset=args.preset,
+    )
