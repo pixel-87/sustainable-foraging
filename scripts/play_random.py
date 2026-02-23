@@ -144,7 +144,7 @@ def main(episodes=1, render=False, use_aec=False, env_id="Foraging-8x8-2p-2f-v3"
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Play the level foraging game.")
+    parser = argparse.ArgumentParser(description="Run random-agent rollouts in Gym or AEC envs.")
 
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--episodes", type=int, default=1, help="How many episodes to run")
