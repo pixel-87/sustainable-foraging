@@ -13,15 +13,16 @@ def simple2p1f():
     """Create a simple 2 player, 1 food environment with controlled setup."""
     env = ForagingEnv(
         players=2,
-        min_player_level=2,
-        max_player_level=2,
-        min_food_level=2,
-        max_food_level=2,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=1,
         sight=8,
         max_episode_steps=50,
-        force_coop=False,
         normalize_reward=True,
         grid_observation=False,
         penalty=0.0
@@ -48,15 +49,16 @@ def simple2p1f_sight1():
     """Create a simple 2 player, 1 food environment with sight=1."""
     env = ForagingEnv(
         players=2,
-        min_player_level=2,
-        max_player_level=2,
-        min_food_level=2,
-        max_food_level=2,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=1,
         sight=1,
         max_episode_steps=50,
-        force_coop=False,
         normalize_reward=True,
         grid_observation=False,
         penalty=0.0
@@ -82,15 +84,16 @@ def simple2p1f_sight2():
     """Create a simple 2 player, 1 food environment with sight=2."""
     env = ForagingEnv(
         players=2,
-        min_player_level=2,
-        max_player_level=2,
-        min_food_level=2,
-        max_food_level=2,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=1,
         sight=2,
         max_episode_steps=50,
-        force_coop=False,
         normalize_reward=True,
         grid_observation=False,
         penalty=0.0
@@ -115,15 +118,16 @@ def test_aec_api():
     """Test PettingZoo AEC API compliance."""
     env = ForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=None,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=2,
         sight=8,
         max_episode_steps=50,
-        force_coop=False,
         normalize_reward=True,
         grid_observation=False,
         penalty=0.0
@@ -137,15 +141,16 @@ def test_aec_manual_cycle():
     """Test basic manual stepping through the environment."""
     env = ForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=None,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=2,
         sight=8,
         max_episode_steps=50,
-        force_coop=False
     )
     env.reset()
     
@@ -168,15 +173,16 @@ def test_food_spawning_spacing():
     """Test that food spawns with proper spacing constraints."""
     env = ForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=2,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(6, 6),
         max_num_food=2,
         sight=6,
         max_episode_steps=50,
-        force_coop=False
     )
     
     for _ in range(100):
@@ -199,15 +205,16 @@ def test_food_spawning_multiple():
     """Test food spawning with 3 foods."""
     env = ForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=2,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=3,
         sight=8,
         max_episode_steps=50,
-        force_coop=False
     )
     
     for _ in range(100):
@@ -247,8 +254,12 @@ def test_reward_cooperative_loading(simple2p1f):
             rewards_collected = [env.players[0].reward, env.players[1].reward]
     
     # Both should get equal reward (normalized: 0.5 each)
-    assert abs(rewards_collected[0] - 0.5) < 0.01
-    assert abs(rewards_collected[1] - 0.5) < 0.01
+    # In the new sustainability model, reward is based on hunger.
+    # Since they start with max_energy, hunger is 0, so reward is 0.
+    # But they lose 1 energy per step, so hunger is 1/50.
+    # Reward = (10 / 2) * (1/50) = 5 * 0.02 = 0.1
+    assert abs(rewards_collected[0] - 0.1) < 0.01
+    assert abs(rewards_collected[1] - 0.1) < 0.01
 
 
 def test_reward_single_player_loading(simple2p1f):
@@ -274,8 +285,9 @@ def test_reward_single_player_loading(simple2p1f):
             rewards_collected = [env.players[0].reward, env.players[1].reward]
     
     # Player 1 should get full reward, player 0 gets nothing
+    # Reward = 10 * (1/50) = 0.2
     assert rewards_collected[0] == 0
-    assert abs(rewards_collected[1] - 1.0) < 0.01
+    assert abs(rewards_collected[1] - 0.2) < 0.01
 
 
 def test_seeding_reproducibility():
@@ -285,60 +297,62 @@ def test_seeding_reproducibility():
     for seed in range(3):
         env1 = ForagingEnv(
             players=2,
-            min_player_level=1,
-            max_player_level=2,
-            min_food_level=1,
-            max_food_level=2,
+            max_energy=50,
+            food_energy_value=10,
+            energy_depletion_rate=1,
+            food_regeneration_rate=0.1,
+            num_food_zones=2,
+            observe_agent_energy=True,
             field_size=(8, 8),
             max_num_food=2,
             sight=8,
             max_episode_steps=50,
-            force_coop=False
         )
         
         env2 = ForagingEnv(
             players=2,
-            min_player_level=1,
-            max_player_level=2,
-            min_food_level=1,
-            max_food_level=2,
+            max_energy=50,
+            food_energy_value=10,
+            energy_depletion_rate=1,
+            food_regeneration_rate=0.1,
+            num_food_zones=2,
+            observe_agent_energy=True,
             field_size=(8, 8),
             max_num_food=2,
             sight=8,
             max_episode_steps=50,
-            force_coop=False
         )
         
         fields1 = []
         positions1 = []
-        levels1 = []
+        energy1 = []
         
         env1.seed(seed)
         for _ in range(episodes_per_seed):
             env1.reset()
             fields1.append(env1.field.copy())
             positions1.append([p.position for p in env1.players])
-            levels1.append([p.level for p in env1.players])
+            energy1.append([p.energy for p in env1.players])
         
         fields2 = []
         positions2 = []
-        levels2 = []
+        energy2 = []
         
         env2.seed(seed)
         for _ in range(episodes_per_seed):
             env2.reset()
             fields2.append(env2.field.copy())
             positions2.append([p.position for p in env2.players])
-            levels2.append([p.level for p in env2.players])
+            energy2.append([p.energy for p in env2.players])
         
         # Verify reproducibility
         for i in range(episodes_per_seed):
             assert np.array_equal(fields1[i], fields2[i]), \
-                f"Fields not identical for episode {i} with seed {seed}"
+                f"Fields differ for seed {seed}, episode {i}"
             assert positions1[i] == positions2[i], \
-                f"Positions not identical for episode {i} with seed {seed}"
-            assert levels1[i] == levels2[i], \
-                f"Levels not identical for episode {i} with seed {seed}"
+                f"Positions differ for seed {seed}, episode {i}"
+            assert energy1[i] == energy2[i], \
+                f"Energy differ for seed {seed}, episode {i}"
 
 
 def test_partial_observability_sight1(simple2p1f_sight1):
@@ -393,15 +407,16 @@ def test_episode_termination():
     """Test that episodes terminate correctly."""
     env = ForagingEnv(
         players=2,
-        min_player_level=2,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=1,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=1,
         sight=8,
         max_episode_steps=10,  # Short episode
-        force_coop=False
     )
     
     env.reset()
@@ -429,15 +444,16 @@ def test_collision_detection():
     """Test that player collisions are handled correctly."""
     env = ForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=1,
-        min_food_level=1,
-        max_food_level=1,
+        max_energy=50,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
+        observe_agent_energy=True,
         field_size=(8, 8),
         max_num_food=1,
         sight=8,
         max_episode_steps=50,
-        force_coop=False
     )
     
     env.reset()
@@ -531,9 +547,9 @@ def test_loading_logic_normalization(simple2p1f):
     
     # Place P0 at (2,1) and P1 at (2,3). Both level 1.
     env.players[0].position = (2, 1)
-    env.players[0].level = 1
+    env.players[0].energy = 50
     env.players[1].position = (2, 3)
-    env.players[1].level = 1
+    env.players[1].energy = 50
     env._gen_valid_moves()
     
     # Both LOAD
@@ -552,8 +568,8 @@ def test_loading_logic_normalization(simple2p1f):
     # The `last()` call returns reward for the *current* agent selection.
     # My test `test_reward_cooperative_loading` checked `env.players[i].reward`.
     
-    assert env.players[0].reward == 0.5
-    assert env.players[1].reward == 0.5
+    assert abs(env.players[0].reward - 0.1) < 0.01
+    assert abs(env.players[1].reward - 0.1) < 0.01
     assert env.field[2, 2] == 0 # Food removed
 
 

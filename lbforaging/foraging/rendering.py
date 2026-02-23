@@ -183,13 +183,15 @@ class Viewer(object):
         batch.draw()
 
         for row, col in idxes:
-            self._draw_badge(row, col, env.field[row, col])
+            self._draw_badge(row, col, int(env.food_energy_value))
 
     def _draw_players(self, env):
         players = []
         batch = pyglet.graphics.Batch()
 
         for player in env.players:
+            if player.position is None:
+                continue
             row, col = player.position
             players.append(
                 pyglet.sprite.Sprite(
@@ -203,7 +205,8 @@ class Viewer(object):
             p.update(scale=self.grid_size / p.width)
         batch.draw()
         for p in env.players:
-            self._draw_badge(*p.position, p.level)
+            if p.position is not None:
+                self._draw_badge(*p.position, int(p.energy))
 
     def _draw_badge(self, row, col, level):
         resolution = 6
