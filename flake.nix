@@ -1,5 +1,5 @@
 {
-  description = "Level Based Foraging with PettingZoo";
+  description = "Sustainable Foraging with PettingZoo";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,12 +14,12 @@
   in 
   {
     packages = forAllSystems (pkgs: {
-      default = self.packages.${pkgs.stdenv.hostPlatform.system}.lb-foraging;
-      lb-foraging = pkgs.callPackage ./nix/default.nix { version = self.shortRev or "unstable"; };
+      default = self.packages.${pkgs.stdenv.hostPlatform.system}.sustainable-foraging;
+      sustainable-foraging = pkgs.callPackage ./nix/default.nix { version = self.shortRev or "unstable"; };
       });
 
     overlays.default = final: _: {
-      lb-foraging = final.callPackage ./nix/default.nix { version = self.shortRev or "unstable"; };
+      sustainable-foraging = final.callPackage ./nix/default.nix { version = self.shortRev or "unstable"; };
     };
 
     devShells = forAllSystems (pkgs: {

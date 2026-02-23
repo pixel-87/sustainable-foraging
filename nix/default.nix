@@ -8,7 +8,7 @@
 }:
 
 python3Packages.buildPythonApplication {
-  pname = "lb-foraging";
+  pname = "sustainable-foraging";
   inherit version;
 
   src = lib.cleanSource ../.;
@@ -29,10 +29,10 @@ python3Packages.buildPythonApplication {
   nativeCheckInputs = [ python3Packages.pytestCheckHook ];
 
   meta = {
-    description = "Level Based Foraging with PettingZoo";
-    homepage = "https://github.com/pixel-87/lb-foraging";
+    description = "Sustainable Foraging with PettingZoo";
+    homepage = "https://github.com/pixel-87/sustainable-foraging";
     license = lib.licenses.gpl3Plus;
     maintainers = with lib.maintainers; [ pixel-87 ];
-    mainProgram = "lb-foraging";
+    mainProgram = "sustainable-foraging";
   };
 }

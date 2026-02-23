@@ -1,4 +1,4 @@
-# LB-Foraging Scripts & Commands Cheat Sheet
+# Sustainable-Foraging Scripts & Commands Cheat Sheet
 
 ### **Run Tests**
 **Command:** `pytest tests/test_aec.py`
@@ -22,9 +22,8 @@
 **Command:** `python -m scripts.train_sb3 --preset fair`
 *   **Purpose:** Trains a PPO agent from scratch using the AEC environment.
 *   **Output:** Saves logs/config/model under `logs/<run_name>/`.
-*   **Performance Tuning:**
-    *   `--num-envs 8`: Run 8 environments in parallel to speed up training dramatically (e.g., ~2x FPS on CPU).
-    *   `--batch-size 2048`: Increase PPO batch size for faster neural network updates.
+*   **Fixed benchmark defaults:** `timesteps=200000`, `num_envs=8`, `batch_size=2048`, `lr=0.001`.
+*   **Inspect defaults/seeds:** `python -m scripts.train_sb3 --show-benchmark-settings`
 *   **Preset tiers:**
     *   `easy`: High regeneration, generous energy budget.
     *   `fair`: Balanced benchmark default.

@@ -1,7 +1,7 @@
 
 <p align="center">
- <img width="350px" src="docs/img/logo.png" align="center" alt="Level Based Foraging (LBF)" />
- <p align="center">A multi-agent reinforcement learning environment</p>
+ <img width="350px" src="docs/img/logo.png" align="center" alt="Sustainable Foraging" />
+ <p align="center">A PettingZoo AEC environment for sustainable multi-agent reinforcement learning</p>
 </p>
 
 <!-- TABLE OF CONTENTS -->
@@ -51,39 +51,38 @@ This is a Python simulator for level based foraging. It is based on OpenAI's RL 
 
 ## Installation
 
-Install using pip
+Install from source with uv:
 ```sh
-pip install lbforaging
+git clone https://github.com/pixel-87/sustainable-foraging.git
+cd sustainable-foraging
+uv sync
 ```
-Or to ensure that you have the latest version:
-```sh
-git clone https://github.com/semitable/lb-foraging.git
-cd lb-foraging
-pip install -e .
-```
-
 
 <!-- USAGE EXAMPLES -->
 # Usage
 
 ## Sustainable Benchmark Presets
 
-This repository now includes a formalized sustainable-foraging benchmark configuration for AEC training scripts.
+This repository includes a formalized sustainable-foraging benchmark configuration for AEC training scripts.
 
 - Benchmark name: `sustainable_v1`
 - Presets: `easy`, `fair`, `hard`
 - Scripts:
-  - Train: `python -m scripts.train_sb3 --preset fair --num-envs 8`
+  - Train: `python -m scripts.train_sb3 --preset fair`
   - Inference: `python -m scripts.inference_sb3 --preset fair --model logs/<run_name>/model`
   - Show presets: `python -m scripts.train_sb3 --list-presets`
+  - Show fixed defaults/seeds: `python -m scripts.train_sb3 --show-benchmark-settings`
 
 Use the same preset across algorithm runs to keep comparisons fair.
+See the full benchmark protocol in `docs/benchmark_protocol.md`.
 
 Create environments with the gym framework.
-First import
+First import:
 ```python
 import lbforaging
 ```
+
+Note: the distribution/package name is `sustainable-foraging`, while the Python import path currently remains `lbforaging` for compatibility.
 
 Then create an environment:
 ```python
@@ -185,7 +184,12 @@ Within the script, you can control a single agent at the time using the followin
 
 <!-- CITATION -->
 # Please Cite
-1. The paper that first uses this implementation of Level-based Foraging (LBF) and achieves state-of-the-art results:
+
+This project is a substantial refactor of the original [Level-Based Foraging](https://github.com/semitable/lb-foraging) environment, adapted for the PettingZoo AEC API with sustainable foraging mechanics.
+
+If you use this code, please cite the original LBF work:
+
+1. Original Level-Based Foraging environment:
 ```
 @inproceedings{christianos2020shared,
   title={Shared Experience Actor-Critic for Multi-Agent Reinforcement Learning},
@@ -194,7 +198,7 @@ Within the script, you can control a single agent at the time using the followin
   year={2020}
 }
 ```
-2. A comperative evaluation of cooperative MARL algorithms and includes an introduction to this environment:
+2. Comparative evaluation of cooperative MARL algorithms that also introduces this environment:
 ```
 @inproceedings{papoudakis2021benchmarking,
    title={Benchmarking Multi-Agent Deep Reinforcement Learning Algorithms in Cooperative Tasks},
@@ -218,6 +222,8 @@ Within the script, you can control a single agent at the time using the followin
 <!-- CONTACT -->
 # Contact
 
-Filippos Christianos - f.christianos@ed.ac.uk
+pixel-87
 
-Project Link: [https://github.com/semitable/lb-foraging](https://github.com/semitable/lb-foraging)
+Project Link: [https://github.com/pixel-87/sustainable-foraging](https://github.com/pixel-87/sustainable-foraging)
+
+Original Project: [https://github.com/semitable/lb-foraging](https://github.com/semitable/lb-foraging)

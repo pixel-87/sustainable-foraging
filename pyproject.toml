@@ -3,9 +3,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lbforaging"
+name = "sustainable-foraging"
 version = "2.0.0"
-description = "Level Based Foraging Environment"
+description = "Sustainable Foraging environment for multi-agent RL"
 readme = "README.md"
 license = { text = "GPL-3.0+" }
 authors = [
@@ -40,8 +40,8 @@ train = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/semitable/lb-foraging"
-Repository = "https://github.com/semitable/lb-foraging"
+Homepage = "https://github.com/pixel-87/sustainable-foraging"
+Repository = "https://github.com/pixel-87/sustainable-foraging"
 
 [tool.setuptools.packages.find]
 where = ["."]
