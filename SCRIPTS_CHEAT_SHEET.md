@@ -22,6 +22,9 @@
 **Command:** `python -m scripts.train_sb3 --preset fair`
 *   **Purpose:** Trains a PPO agent from scratch using the AEC environment.
 *   **Output:** Saves logs/config/model under `logs/<run_name>/`.
+*   **Performance Tuning:**
+    *   `--num-envs 8`: Run 8 environments in parallel to speed up training dramatically (e.g., ~2x FPS on CPU).
+    *   `--batch-size 2048`: Increase PPO batch size for faster neural network updates.
 *   **Preset tiers:**
     *   `easy`: High regeneration, generous energy budget.
     *   `fair`: Balanced benchmark default.
@@ -53,12 +56,12 @@
 Use this to check that the environment loop works without any training intelligence (random actions).
 
 ### **Run Random Agents (Gym Version)**
-**Command:** `python -m scripts.lbforaging --render --episodes 5`
+**Command:** `python -m scripts.play_random --render --episodes 5`
 *   **Purpose:** Runs the *original* Gym environment with random actions.
 *   **Output:** Prints returns and renders the game.
 
 ### **Run Random Agents (AEC Version)**
-**Command:** `python -m scripts.lbforaging --render --aec --episodes 5`
+**Command:** `python -m scripts.play_random --render --aec --episodes 5`
 *   **Purpose:** Runs the *new PettingZoo AEC* environment with random actions.
 *   **Why use this?**
     *   Verifies that your AEC `step()` and `render()` logic doesn't crash.

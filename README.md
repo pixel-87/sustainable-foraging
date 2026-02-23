@@ -73,7 +73,7 @@ This repository now includes a formalized sustainable-foraging benchmark configu
 - Benchmark name: `sustainable_v1`
 - Presets: `easy`, `fair`, `hard`
 - Scripts:
-  - Train: `python -m scripts.train_sb3 --preset fair`
+  - Train: `python -m scripts.train_sb3 --preset fair --num-envs 8`
   - Inference: `python -m scripts.inference_sb3 --preset fair --model logs/<run_name>/model`
   - Show presets: `python -m scripts.train_sb3 --list-presets`
 

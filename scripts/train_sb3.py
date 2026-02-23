@@ -216,7 +216,7 @@ class MetricsCallback(BaseCallback):
 DEFAULT_PRESET = "fair"
 
 
-def make_env(config=None):
+def make_env(config=None, num_envs=1):
     """Create and wrap the foraging environment for SB3 training."""
     cfg = config or get_preset(DEFAULT_PRESET)
     env = AECForagingEnv(**cfg)
@@ -226,7 +226,7 @@ def make_env(config=None):
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(
         env,
-        num_vec_envs=1,
+        num_vec_envs=num_envs,
         num_cpus=0,
         base_class="stable_baselines3",
     )
@@ -241,6 +241,8 @@ def train(
     run_name: str | None = None,
     lr: float = 1e-3,
     preset: str = DEFAULT_PRESET,
+    num_envs: int = 1,
+    batch_size: int = 256,
 ):
     if run_name is None:
         run_name = time.strftime("run_%Y%m%d_%H%M%S")
@@ -261,7 +263,8 @@ def train(
         "run_name": run_name,
         "total_timesteps": total_timesteps,
         "learning_rate": lr,
-        "batch_size": 256,
+        "batch_size": batch_size,
+        "num_envs": num_envs,
         "algorithm": "PPO",
         "policy": "MlpPolicy",
         "environment": env_config,
@@ -280,11 +283,13 @@ def train(
     print(f"Log dir    : {log_dir}")
     print(f"Timesteps  : {total_timesteps:,}")
     print(f"LR         : {lr}")
+    print(f"Num Envs   : {num_envs}")
+    print(f"Batch Size : {batch_size}")
     print(f"Config     : {config_path}")
     print()
 
     # 1. Create environment
-    env = make_env(env_config)
+    env = make_env(env_config, num_envs=num_envs)
 
     # 2. Create PPO model
     model = PPO(
@@ -292,7 +297,7 @@ def train(
         env,
         verbose=1,
         learning_rate=lr,
-        batch_size=256,
+        batch_size=batch_size,
         tensorboard_log=str(tb_dir),
     )
 
@@ -316,8 +321,8 @@ def train(
     eval_rewards = []
     ep_reward = 0.0
     for _ in range(500):
-        action, _ = model.predict(obs, deterministic=True)
-        obs, reward, done, info = env.step(action)
+        action, _ = model.predict(obs, deterministic=True)  # type: ignore
+        obs, reward, done, info = env.step(action)  # type: ignore
         ep_reward += sum(reward)
         if any(done):
             eval_rewards.append(ep_reward)
@@ -368,6 +373,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Print available sustainable benchmark presets and exit",
     )
+    parser.add_argument(
+        "--num-envs",
+        type=int,
+        default=1,
+        help="Number of vectorized environments to run in parallel (default: 1). Increase this to speed up training.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=256,
+        help="Batch size for PPO updates (default: 256).",
+    )
     args = parser.parse_args()
 
     if args.list_presets:
@@ -381,4 +398,6 @@ if __name__ == "__main__":
         run_name=args.name,
         lr=args.lr,
         preset=args.preset,
+        num_envs=args.num_envs,
+        batch_size=args.batch_size,
     )
