@@ -1,3 +1,4 @@
+import argparse
 import gymnasium as gym
 import numpy as np
 from stable_baselines3 import PPO
@@ -7,22 +8,33 @@ from lbforaging.foraging import AECForagingEnv
 import time
 
 def main():
+    parser = argparse.ArgumentParser(description="Run inference on trained PPO model")
+    parser.add_argument(
+        "--model", "-m", type=str, default="ppo_lbforaging",
+        help="Path to the trained model zip file (without .zip extension)"
+    )
+    parser.add_argument(
+        "--max-steps", type=int, default=10000,
+        help="Maximum number of steps per episode (default: 10000)"
+    )
+    args = parser.parse_args()
+
     print("Initializing environment...")
     # 1. Re-create the environment with the EXACT same parameters as training
     # We add render_mode="human" to enable visual output
     env = AECForagingEnv(
         players=2,
-        min_player_level=1,
-        max_player_level=2,
-        min_food_level=1,
-        max_food_level=None,
+        max_energy=100,
+        food_energy_value=10,
+        energy_depletion_rate=1,
+        food_regeneration_rate=0.1,
+        num_food_zones=2,
         field_size=(8, 8),
         max_num_food=2,
         sight=8,
-        max_episode_steps=50,
-        force_coop=False,
+        max_episode_steps=args.max_steps,
         render_mode="human",
-        grid_observation=False
+        grid_observation=True
     )
 
     # 2. Apply the EXACT same wrapper stack as used in training
@@ -34,11 +46,11 @@ def main():
     env = ss.concat_vec_envs_v1(env, num_vec_envs=1, num_cpus=0, base_class='stable_baselines3')
 
     # 3. Load the model
-    print("Loading model 'ppo_lbforaging.zip'...")
+    print(f"Loading model '{args.model}.zip'...")
     try:
-        model = PPO.load("ppo_lbforaging")
+        model = PPO.load(args.model)
     except FileNotFoundError:
-        print("Error: Could not find 'ppo_lbforaging.zip'. Make sure you have run train_sb3.py first.")
+        print(f"Error: Could not find '{args.model}.zip'. Make sure you have run train_sb3.py first.")
         return
 
     # 4. Inference Loop

@@ -206,15 +206,15 @@ class MetricsCallback(BaseCallback):
 # ---------------------------------------------------------------------------
 ENV_CONFIG = dict(
     players=2,
-    min_player_level=1,
-    max_player_level=2,
-    min_food_level=1,
-    max_food_level=None,
+    max_energy=100,
+    food_energy_value=10,
+    energy_depletion_rate=1,
+    food_regeneration_rate=0.1,
+    num_food_zones=2,
     field_size=(8, 8),
     max_num_food=2,
     sight=8,
     max_episode_steps=50,
-    force_coop=False,
     grid_observation=True,
 )
 
