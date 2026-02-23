@@ -5,9 +5,9 @@
 
   # python tooling
   python3,
-  uv, # package management
-  ty, # type checker
-  ruff, # linting formatting all that goodness
+  uv,
+  ty,
+  ruff,
 
   # graphics 
   xvfb-run,
