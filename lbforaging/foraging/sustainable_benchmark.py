@@ -12,6 +12,20 @@ from typing import Any
 
 BENCHMARK_NAME = "sustainable_v1"
 
+# Fixed benchmark protocol for reproducible algorithm comparisons.
+BENCHMARK_TRAINING_DEFAULTS: dict[str, Any] = {
+    "total_timesteps": 200_000,
+    "learning_rate": 1e-3,
+    "num_envs": 8,
+    "batch_size": 2048,
+    "eval_episodes": 20,
+}
+
+BENCHMARK_SEEDS: dict[str, tuple[int, ...]] = {
+    "train": (11, 22, 33, 44, 55),
+    "eval": (101, 202, 303, 404, 505),
+}
+
 SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
     "easy": {
         "players": 2,
@@ -64,3 +78,14 @@ def get_preset(name: str) -> dict[str, Any]:
         valid = ", ".join(list_presets())
         raise ValueError(f"Unknown preset '{name}'. Choose one of: {valid}")
     return deepcopy(SUSTAINABLE_PRESETS[name])
+
+
+def get_training_defaults() -> dict[str, Any]:
+    return deepcopy(BENCHMARK_TRAINING_DEFAULTS)
+
+
+def get_seeds(split: str) -> tuple[int, ...]:
+    if split not in BENCHMARK_SEEDS:
+        valid = ", ".join(BENCHMARK_SEEDS.keys())
+        raise ValueError(f"Unknown seed split '{split}'. Choose one of: {valid}")
+    return BENCHMARK_SEEDS[split]

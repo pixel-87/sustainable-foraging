@@ -24,7 +24,9 @@ from stable_baselines3.common.callbacks import BaseCallback
 from lbforaging.foraging import AECForagingEnv
 from lbforaging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
+    BENCHMARK_SEEDS,
     get_preset,
+    get_training_defaults,
     list_presets,
 )
 from pettingzoo.utils import aec_to_parallel
@@ -214,6 +216,7 @@ class MetricsCallback(BaseCallback):
 # Environment factory
 # ---------------------------------------------------------------------------
 DEFAULT_PRESET = "fair"
+TRAINING_DEFAULTS = get_training_defaults()
 
 
 def make_env(config=None, num_envs=1):
@@ -237,12 +240,12 @@ def make_env(config=None, num_envs=1):
 # Training
 # ---------------------------------------------------------------------------
 def train(
-    total_timesteps: int = 200_000,
+    total_timesteps: int = TRAINING_DEFAULTS["total_timesteps"],
     run_name: str | None = None,
-    lr: float = 1e-3,
+    lr: float = TRAINING_DEFAULTS["learning_rate"],
     preset: str = DEFAULT_PRESET,
-    num_envs: int = 1,
-    batch_size: int = 256,
+    num_envs: int = TRAINING_DEFAULTS["num_envs"],
+    batch_size: int = TRAINING_DEFAULTS["batch_size"],
 ):
     if run_name is None:
         run_name = time.strftime("run_%Y%m%d_%H%M%S")
@@ -267,6 +270,7 @@ def train(
         "num_envs": num_envs,
         "algorithm": "PPO",
         "policy": "MlpPolicy",
+        "seed_splits": BENCHMARK_SEEDS,
         "environment": env_config,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -350,8 +354,8 @@ if __name__ == "__main__":
         "--timesteps",
         "-t",
         type=int,
-        default=200_000,
-        help="Total training timesteps (default: 200000)",
+        default=TRAINING_DEFAULTS["total_timesteps"],
+        help=f"Total training timesteps (default: {TRAINING_DEFAULTS['total_timesteps']})",
     )
     parser.add_argument(
         "--name",
@@ -360,7 +364,12 @@ if __name__ == "__main__":
         default=None,
         help="Run name (default: auto-generated timestamp)",
     )
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate (default: 0.001)")
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=TRAINING_DEFAULTS["learning_rate"],
+        help=f"Learning rate (default: {TRAINING_DEFAULTS['learning_rate']})",
+    )
     parser.add_argument(
         "--preset",
         type=str,
@@ -374,16 +383,21 @@ if __name__ == "__main__":
         help="Print available sustainable benchmark presets and exit",
     )
     parser.add_argument(
+        "--show-benchmark-settings",
+        action="store_true",
+        help="Print fixed benchmark training defaults and seed splits, then exit",
+    )
+    parser.add_argument(
         "--num-envs",
         type=int,
-        default=1,
-        help="Number of vectorized environments to run in parallel (default: 1). Increase this to speed up training.",
+        default=TRAINING_DEFAULTS["num_envs"],
+        help=f"Number of vectorized environments to run in parallel (default: {TRAINING_DEFAULTS['num_envs']})",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=256,
-        help="Batch size for PPO updates (default: 256).",
+        default=TRAINING_DEFAULTS["batch_size"],
+        help=f"Batch size for PPO updates (default: {TRAINING_DEFAULTS['batch_size']})",
     )
     args = parser.parse_args()
 
@@ -391,6 +405,12 @@ if __name__ == "__main__":
         print(f"Benchmark: {BENCHMARK_NAME}")
         for preset_name in list_presets():
             print(f"- {preset_name}: {get_preset(preset_name)}")
+        raise SystemExit(0)
+
+    if args.show_benchmark_settings:
+        print(f"Benchmark: {BENCHMARK_NAME}")
+        print(f"Training defaults: {TRAINING_DEFAULTS}")
+        print(f"Seed splits: {BENCHMARK_SEEDS}")
         raise SystemExit(0)
 
     train(
