@@ -32,7 +32,7 @@ SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
         "max_energy": 120,
         "food_energy_value": 12,
         "energy_depletion_rate": 1,
-        "food_regeneration_rate": 0.20,
+        "food_regeneration_rate": 2.0,  # α: fast logistic regrowth
         "num_food_zones": 3,
         "field_size": (8, 8),
         "max_num_food": 3,
@@ -45,7 +45,7 @@ SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
         "max_energy": 100,
         "food_energy_value": 10,
         "energy_depletion_rate": 1,
-        "food_regeneration_rate": 0.10,
+        "food_regeneration_rate": 1.5,  # α: moderate logistic regrowth
         "num_food_zones": 2,
         "field_size": (8, 8),
         "max_num_food": 2,
@@ -58,7 +58,7 @@ SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
         "max_energy": 80,
         "food_energy_value": 8,
         "energy_depletion_rate": 2,
-        "food_regeneration_rate": 0.03,
+        "food_regeneration_rate": 1.1,  # α: barely above replacement
         "num_food_zones": 1,
         "field_size": (8, 8),
         "max_num_food": 2,

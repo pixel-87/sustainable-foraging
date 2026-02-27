@@ -98,7 +98,7 @@ class ForagingEnv(AECEnv):
         max_energy=50,
         food_energy_value=10,
         energy_depletion_rate=1,
-        food_regeneration_rate=0.1,
+        food_regeneration_rate=1.5,  # α: logistic replenishment rate (must be > 1)
         num_food_zones=2,
         normalize_reward=True,
         grid_observation=False,
@@ -122,8 +122,9 @@ class ForagingEnv(AECEnv):
         self.num_food_zones = num_food_zones
         self.food_zones = []
 
-        self.max_num_food = max_num_food
+        self.max_num_food = max_num_food  # K: carrying capacity
         self._food_spawned = 0.0
+        self._food_level = 0.0  # continuous food level for logistic growth
 
         self.sight = sight
         self._game_over = None
@@ -585,6 +586,7 @@ class ForagingEnv(AECEnv):
         self.spawn_players(self.max_energy)
 
         self.spawn_food(self.max_num_food)
+        self._food_level = float(np.count_nonzero(self.field))  # init continuous level
         self.current_step = 0
         self._game_over = False
         self._gen_valid_moves()
@@ -825,19 +827,32 @@ class ForagingEnv(AECEnv):
         loading_players = self._resolve_player_movements(actions)
         self._process_food_loading(loading_players)
         
-        # Regenerate food
-        current_food = np.count_nonzero(self.field)
-        if current_food < self.max_num_food:
-            for zone in self.food_zones:
-                if self._np_random.random() < self.food_regeneration_rate:
-                    # Try to spawn 1 food near this zone
-                    row = np.clip(zone[0] + self._np_random.integers(-2, 3), 1, self.rows - 2)
-                    col = np.clip(zone[1] + self._np_random.integers(-2, 3), 1, self.cols - 2)
-                    if self._is_empty_location(row, col) and self.neighborhood(row, col).sum() == 0:
-                        self.field[row, col] = 1
-                        current_food += 1
-                        if current_food >= self.max_num_food:
-                            break
+        # Logistic food regeneration (SFP Equation 11)
+        # r_{t+1} = α * r_t - (α - 1) / K * r_t² - total_foraged
+        # Uses continuous _food_level for accurate math, then syncs the grid.
+        alpha = self.food_regeneration_rate  # replenishment rate (α > 1)
+        K = float(self.max_num_food)         # carrying capacity
+        r_t = self._food_level               # pre-foraging continuous level
+        total_foraged = float(self._step_foods_collected)
+
+        if K > 0 and r_t > 0:
+            r_next = alpha * r_t - (alpha - 1.0) / K * (r_t ** 2) - total_foraged
+        else:
+            # Point of no return: if r_t == 0, no regrowth is possible
+            r_next = -total_foraged
+
+        r_next = max(0.0, min(r_next, K))  # clamp to [0, K]
+        self._food_level = r_next
+
+        # Sync grid to match the calculated food level
+        current_grid_food = int(np.count_nonzero(self.field))
+        target_grid_food = int(round(r_next))
+        diff = target_grid_food - current_grid_food
+
+        if diff > 0:
+            self._spawn_food_units(diff)
+        elif diff < 0:
+            self._remove_food_units(-diff)
 
         self._update_game_state()
 
@@ -847,6 +862,38 @@ class ForagingEnv(AECEnv):
         info = self._get_info()
 
         return self._make_gym_obs(), rewards, done, truncated, info
+
+    def _spawn_food_units(self, count):
+        """Spawn `count` food units near existing food patches or food zones."""
+        spawned = 0
+        attempts = 0
+
+        # Gather candidate centers: existing food locations + food zones
+        food_positions = list(zip(*np.nonzero(self.field)))
+        centers = food_positions + list(self.food_zones)
+        if not centers:
+            # If no food and no zones, fallback to random interior positions
+            centers = [(self._np_random.integers(1, self.rows - 1),
+                        self._np_random.integers(1, self.cols - 1))]
+
+        while spawned < count and attempts < 1000:
+            attempts += 1
+            center = centers[self._np_random.integers(0, len(centers))]
+            row = int(np.clip(center[0] + self._np_random.integers(-2, 3), 1, self.rows - 2))
+            col = int(np.clip(center[1] + self._np_random.integers(-2, 3), 1, self.cols - 2))
+            if self._is_empty_location(row, col):
+                self.field[row, col] = 1
+                spawned += 1
+
+    def _remove_food_units(self, count):
+        """Remove `count` food units randomly from the grid."""
+        food_positions = list(zip(*np.nonzero(self.field)))
+        if not food_positions:
+            return
+        self._np_random.shuffle(food_positions)
+        for i in range(min(count, len(food_positions))):
+            r, c = food_positions[i]
+            self.field[r, c] = 0
 
     def _init_render(self):
         from .rendering import Viewer
