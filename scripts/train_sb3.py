@@ -269,6 +269,7 @@ def train(
         "batch_size": batch_size,
         "num_envs": num_envs,
         "algorithm": "PPO",
+        "library": "SB3",
         "policy": "MlpPolicy",
         "seed_splits": BENCHMARK_SEEDS,
         "environment": env_config,

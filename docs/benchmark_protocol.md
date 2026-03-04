@@ -30,9 +30,9 @@ Difficulty is controlled by the cost multiplier `c` assumption.
 
 | Preset | α | c | N | d | K | E | Steps |
 |--------|------|-----|---|---|---|----|----|
-| `easy` | 1.2222 | 1.0 | 2 | 1 | 3 | 12 | 60 |
-| `fair` | 1.6000 | 1.5 | 2 | 1 | 2 | 10 | 50 |
-| `hard` | 3.0000 | 2.0 | 2 | 2 | 2 | 8 | 50 |
+| `easy` | 1.2222 | 1.0 | 2 | 1 | 3 | 12 | 500 |
+| `fair` | 1.6000 | 1.5 | 2 | 1 | 2 | 10 | 500 |
+| `hard` | 3.0000 | 2.0 | 2 | 2 | 2 | 8 | 500 |
 
 ## Fixed Training Defaults
 

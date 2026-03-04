@@ -109,7 +109,7 @@ _EASY_PARAMS: dict[str, Any] = {
     "field_size": (8, 8),
     "max_num_food": 3,
     "sight": 8,
-    "max_episode_steps": 60,
+    "max_episode_steps": 500,
     "grid_observation": True,
 }
 
@@ -122,7 +122,7 @@ _FAIR_PARAMS: dict[str, Any] = {
     "field_size": (8, 8),
     "max_num_food": 2,
     "sight": 8,
-    "max_episode_steps": 50,
+    "max_episode_steps": 500,
     "grid_observation": True,
 }
 
@@ -135,7 +135,7 @@ _HARD_PARAMS: dict[str, Any] = {
     "field_size": (8, 8),
     "max_num_food": 2,
     "sight": 8,
-    "max_episode_steps": 50,
+    "max_episode_steps": 500,
     "grid_observation": True,
 }
 
