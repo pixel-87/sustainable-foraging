@@ -8,22 +8,31 @@ This project uses a fixed benchmark protocol for fair algorithm comparisons.
 - Presets: `easy`, `fair`, `hard`
 - Source of truth: `lbforaging/foraging/sustainable_benchmark.py`
 
+## Critical Alpha Threshold
+
+Each preset's replenishment rate (α) is computed from the **SFP logistic growth sustainability condition**:
+
+```
+α_critical = 1 + (4 · N · d · c) / (K · food_energy_value)
+```
+
+| Symbol | Meaning |
+|--------|---------|
+| N | Number of agents |
+| d | `energy_depletion_rate` |
+| c | Cost multiplier (1=still, 2=always moving) |
+| K | `max_num_food` (carrying capacity) |
+
+At `α = α_critical`, the environment can only sustain agents that act near-optimally.
+Difficulty is controlled by the cost multiplier `c` assumption.
+
 ## Fixed Environment Presets
 
-`easy`
-- `players=2`, `max_energy=120`, `food_energy_value=12`
-- `energy_depletion_rate=1`, `food_regeneration_rate=0.20`, `num_food_zones=3`
-- `field_size=(8,8)`, `max_num_food=3`, `sight=8`, `max_episode_steps=60`
-
-`fair`
-- `players=2`, `max_energy=100`, `food_energy_value=10`
-- `energy_depletion_rate=1`, `food_regeneration_rate=0.10`, `num_food_zones=2`
-- `field_size=(8,8)`, `max_num_food=2`, `sight=8`, `max_episode_steps=50`
-
-`hard`
-- `players=2`, `max_energy=80`, `food_energy_value=8`
-- `energy_depletion_rate=2`, `food_regeneration_rate=0.03`, `num_food_zones=1`
-- `field_size=(8,8)`, `max_num_food=2`, `sight=8`, `max_episode_steps=50`
+| Preset | α | c | N | d | K | E | Steps |
+|--------|------|-----|---|---|---|----|----|
+| `easy` | 1.2222 | 1.0 | 2 | 1 | 3 | 12 | 60 |
+| `fair` | 1.6000 | 1.5 | 2 | 1 | 2 | 10 | 50 |
+| `hard` | 3.0000 | 2.0 | 2 | 2 | 2 | 8 | 50 |
 
 ## Fixed Training Defaults
 

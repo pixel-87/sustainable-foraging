@@ -2,6 +2,20 @@
 
 These presets define the task, not the training hyperparameters.
 Use the same preset across algorithms/libraries for fair comparisons.
+
+The critical α (food_regeneration_rate) is derived from the SFP logistic
+growth equation so that sustainability is only possible with near-perfect
+agent behaviour.  The formula is:
+
+    α_critical = 1 + (4 · N · d · c) / (K · food_energy_value)
+
+where:
+    N = number of agents
+    d = energy_depletion_rate
+    c = average energy cost multiplier per step
+        (1 = agent never moves, 2 = agent moves every step)
+    K = max_num_food  (carrying capacity)
+    food_energy_value = energy gained per food unit
 """
 
 from __future__ import annotations
@@ -26,46 +40,122 @@ BENCHMARK_SEEDS: dict[str, tuple[int, ...]] = {
     "eval": (101, 202, 303, 404, 505),
 }
 
+
+def compute_critical_alpha(
+    players: int,
+    energy_depletion_rate: int | float,
+    max_num_food: int,
+    food_energy_value: int | float,
+    cost_multiplier: float = 1.5,
+) -> float:
+    """Compute the critical replenishment rate α for the SFP logistic model.
+
+    At α = α_critical the maximum possible logistic regrowth exactly equals
+    the minimum harvest rate the agents need to survive.  Any α below this
+    makes collapse inevitable; any α above gives a margin of safety.
+
+    Parameters
+    ----------
+    players : int
+        Number of agents (N).
+    energy_depletion_rate : int | float
+        Base energy lost per step (d).
+    max_num_food : int
+        Carrying capacity of the grid (K).
+    food_energy_value : int | float
+        Energy restored per food unit consumed.
+    cost_multiplier : float
+        Average per-step energy cost as a multiple of d.
+        1.0 = agent never moves (base cost only).
+        2.0 = agent moves every step (base + movement).
+        Default 1.5 is a realistic middle ground.
+
+    Returns
+    -------
+    float
+        The critical α value (always > 1).
+    """
+    N = players
+    d = energy_depletion_rate
+    K = max_num_food
+    E = food_energy_value
+    c = cost_multiplier
+
+    # Minimum food units consumed per step for all agents to survive
+    F_min = (N * d * c) / E
+
+    # At the logistic inflection point (r* = K/2), maximum growth = (α-1)·K/4
+    # Setting (α-1)·K/4 = F_min and solving for α:
+    alpha_critical = 1.0 + (4.0 * F_min) / K
+
+    return alpha_critical
+
+
+# ---------------------------------------------------------------------------
+# Presets – α is set to the critical threshold so that only near-perfect
+# agents can sustain the environment.  Difficulty comes from the cost
+# multiplier assumption:
+#   easy  → c=1.0  (generous: assumes minimal movement cost)
+#   fair  → c=1.5  (realistic: moderate movement)
+#   hard  → c=2.0  (strict: assumes agents move every step)
+# ---------------------------------------------------------------------------
+
+_EASY_PARAMS: dict[str, Any] = {
+    "players": 2,
+    "max_energy": 120,
+    "food_energy_value": 12,
+    "energy_depletion_rate": 1,
+    "num_food_zones": 3,
+    "field_size": (8, 8),
+    "max_num_food": 3,
+    "sight": 8,
+    "max_episode_steps": 60,
+    "grid_observation": True,
+}
+
+_FAIR_PARAMS: dict[str, Any] = {
+    "players": 2,
+    "max_energy": 100,
+    "food_energy_value": 10,
+    "energy_depletion_rate": 1,
+    "num_food_zones": 2,
+    "field_size": (8, 8),
+    "max_num_food": 2,
+    "sight": 8,
+    "max_episode_steps": 50,
+    "grid_observation": True,
+}
+
+_HARD_PARAMS: dict[str, Any] = {
+    "players": 2,
+    "max_energy": 80,
+    "food_energy_value": 8,
+    "energy_depletion_rate": 2,
+    "num_food_zones": 1,
+    "field_size": (8, 8),
+    "max_num_food": 2,
+    "sight": 8,
+    "max_episode_steps": 50,
+    "grid_observation": True,
+}
+
+# Compute α_critical for each preset
+for _params, _c in [(_EASY_PARAMS, 1.0), (_FAIR_PARAMS, 1.5), (_HARD_PARAMS, 2.0)]:
+    _params["food_regeneration_rate"] = round(
+        compute_critical_alpha(
+            players=_params["players"],
+            energy_depletion_rate=_params["energy_depletion_rate"],
+            max_num_food=_params["max_num_food"],
+            food_energy_value=_params["food_energy_value"],
+            cost_multiplier=_c,
+        ),
+        4,
+    )
+
 SUSTAINABLE_PRESETS: dict[str, dict[str, Any]] = {
-    "easy": {
-        "players": 2,
-        "max_energy": 120,
-        "food_energy_value": 12,
-        "energy_depletion_rate": 1,
-        "food_regeneration_rate": 2.0,  # α: fast logistic regrowth
-        "num_food_zones": 3,
-        "field_size": (8, 8),
-        "max_num_food": 3,
-        "sight": 8,
-        "max_episode_steps": 60,
-        "grid_observation": True,
-    },
-    "fair": {
-        "players": 2,
-        "max_energy": 100,
-        "food_energy_value": 10,
-        "energy_depletion_rate": 1,
-        "food_regeneration_rate": 1.5,  # α: moderate logistic regrowth
-        "num_food_zones": 2,
-        "field_size": (8, 8),
-        "max_num_food": 2,
-        "sight": 8,
-        "max_episode_steps": 50,
-        "grid_observation": True,
-    },
-    "hard": {
-        "players": 2,
-        "max_energy": 80,
-        "food_energy_value": 8,
-        "energy_depletion_rate": 2,
-        "food_regeneration_rate": 1.1,  # α: barely above replacement
-        "num_food_zones": 1,
-        "field_size": (8, 8),
-        "max_num_food": 2,
-        "sight": 8,
-        "max_episode_steps": 50,
-        "grid_observation": True,
-    },
+    "easy": _EASY_PARAMS,
+    "fair": _FAIR_PARAMS,
+    "hard": _HARD_PARAMS,
 }
 
 
