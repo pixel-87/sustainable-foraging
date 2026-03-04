@@ -768,12 +768,13 @@ class ForagingEnv(AECEnv):
 
             energy_per_player = self.food_energy_value / len(adj_players)
             for a in adj_players:
-                # Sustainability reward: less reward if already full
-                hunger_ratio = 1.0 - (a.energy / a.max_energy)
-                a.reward = float(energy_per_player * hunger_ratio)
-                
-                # Restore energy
+                # Logarithmic reward: R = k * (log(E_after) - log(E_before))
+                # Diminishing returns for hoarding — hungry agents benefit more
+                e_before = max(a.energy, 1.0)  # floor at 1 to avoid log(0)
                 a.energy = min(a.max_energy, a.energy + energy_per_player)
+                e_after = a.energy
+                k = self.food_energy_value  # scaling constant
+                a.reward = float(k * (np.log(e_after) - np.log(e_before)))
 
             # and the food is removed
             self.field[frow, fcol] = 0

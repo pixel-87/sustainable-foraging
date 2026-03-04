@@ -253,13 +253,14 @@ def test_reward_cooperative_loading(simple2p1f):
         if i == 1:  # After both actions processed
             rewards_collected = [env.players[0].reward, env.players[1].reward]
     
-    # Both should get equal reward (normalized: 0.5 each)
-    # In the new sustainability model, reward is based on hunger.
-    # Since they start with max_energy, hunger is 0, so reward is 0.
-    # But they lose 1 energy per step, so hunger is 1/50.
-    # Reward = (10 / 2) * (1/50) = 5 * 0.02 = 0.1
-    assert abs(rewards_collected[0] - 0.1) < 0.01
-    assert abs(rewards_collected[1] - 0.1) < 0.01
+    # Logarithmic reward: R = k * (log(E_after) - log(E_before))
+    # Energy before load: 50 - 1 (depletion) = 49
+    # energy_per_player = 10 / 2 = 5, E_after = min(50, 49+5) = 50
+    # R = 10 * (ln(50) - ln(49)) ≈ 0.2020
+    import numpy as _np
+    expected = 10 * (_np.log(50) - _np.log(49))
+    assert abs(rewards_collected[0] - expected) < 0.01
+    assert abs(rewards_collected[1] - expected) < 0.01
 
 
 def test_reward_single_player_loading(simple2p1f):
@@ -558,18 +559,14 @@ def test_loading_logic_normalization(simple2p1f):
         obs, reward, term, trunc, info = env.last()
         env.step(Action.LOAD.value)
     
-    # Total Level = 1 + 1 = 2. Food = 2.
-    # Reward unnormalized = PlayerLevel * Food = 1 * 2 = 2.
-    # Normalization factor = TotalLevel (2) * TotalFoodSpawned (2.0) = 4.0.
-    # Expected normalized reward = 2 / 4 = 0.5.
-    
-    # Rewards are collected in env.players[i].reward during step()
-    # BUT in AEC, rewards are distributed.
-    # The `last()` call returns reward for the *current* agent selection.
-    # My test `test_reward_cooperative_loading` checked `env.players[i].reward`.
-    
-    assert abs(env.players[0].reward - 0.1) < 0.01
-    assert abs(env.players[1].reward - 0.1) < 0.01
+    # Logarithmic reward: R = k * (log(E_after) - log(E_before))
+    # Both start at energy=50, lose 1 from depletion → E_before=49
+    # energy_per_player = 10/2 = 5, E_after = min(50, 49+5) = 50
+    # R = 10 * (ln(50) - ln(49)) ≈ 0.2020
+    import numpy as _np
+    expected = 10 * (_np.log(50) - _np.log(49))
+    assert abs(env.players[0].reward - expected) < 0.01
+    assert abs(env.players[1].reward - expected) < 0.01
     assert env.field[2, 2] == 0 # Food removed
 
 
