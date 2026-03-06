@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python 3.13
+        uses: actions/setup-python@6
+        with:
+          python-version: '3.13'
+
+      - name: Install Deps
+        run: pip install ".[test,dev]"
+
+      - name: Run Pytest
+        run: pytest tests/

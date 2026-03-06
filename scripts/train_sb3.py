@@ -11,16 +11,12 @@ Logs training metrics to:
 import argparse
 import csv
 import json
-import os
 import time
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 import supersuit as ss
-from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
-
 from lbforaging.foraging import AECForagingEnv
 from lbforaging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
@@ -30,6 +26,8 @@ from lbforaging.foraging.sustainable_benchmark import (
     list_presets,
 )
 from pettingzoo.utils import aec_to_parallel
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 
 
 # ---------------------------------------------------------------------------

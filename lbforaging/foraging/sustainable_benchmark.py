@@ -3,11 +3,11 @@
 These presets define the task, not the training hyperparameters.
 Use the same preset across algorithms/libraries for fair comparisons.
 
-The critical α (food_regeneration_rate) is derived from the SFP logistic
-growth equation so that sustainability is only possible with near-perfect
-agent behaviour.  The formula is:
+    The critical a (food_regeneration_rate) is derived from the SFP logistic
+    growth equation so that sustainability is only possible with near-perfect
+    agent behaviour.  The formula is:
 
-    α_critical = 1 + (4 · N · d · c) / (K · food_energy_value)
+    a_critical = 1 + (4 · N · d · c) / (K · food_energy_value)
 
 where:
     N = number of agents
@@ -22,7 +22,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any
-
 
 BENCHMARK_NAME = "sustainable_v1"
 
@@ -48,11 +47,11 @@ def compute_critical_alpha(
     food_energy_value: int | float,
     cost_multiplier: float = 1.5,
 ) -> float:
-    """Compute the critical replenishment rate α for the SFP logistic model.
+    """Compute the critical replenishment rate a for the SFP logistic model.
 
-    At α = α_critical the maximum possible logistic regrowth exactly equals
-    the minimum harvest rate the agents need to survive.  Any α below this
-    makes collapse inevitable; any α above gives a margin of safety.
+    At a = a_critical the maximum possible logistic regrowth exactly equals
+    the minimum harvest rate the agents need to survive.  Any a below this
+    makes collapse inevitable; any a above gives a margin of safety.
 
     Parameters
     ----------
@@ -73,7 +72,7 @@ def compute_critical_alpha(
     Returns
     -------
     float
-        The critical α value (always > 1).
+        The critical a value (always > 1).
     """
     N = players
     d = energy_depletion_rate
@@ -84,8 +83,8 @@ def compute_critical_alpha(
     # Minimum food units consumed per step for all agents to survive
     F_min = (N * d * c) / E
 
-    # At the logistic inflection point (r* = K/2), maximum growth = (α-1)·K/4
-    # Setting (α-1)·K/4 = F_min and solving for α:
+    # At the logistic inflection point (r* = K/2), maximum growth = (a-1)·K/4
+    # Setting (a-1)·K/4 = F_min and solving for a:
     alpha_critical = 1.0 + (4.0 * F_min) / K
 
     return alpha_critical

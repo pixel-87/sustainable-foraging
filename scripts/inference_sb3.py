@@ -1,16 +1,16 @@
 import argparse
+import time
+
 import numpy as np
-from stable_baselines3 import PPO
 import supersuit as ss
-from pettingzoo.utils import aec_to_parallel
 from lbforaging.foraging import AECForagingEnv
 from lbforaging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
     get_preset,
     list_presets,
 )
-import time
-
+from pettingzoo.utils import aec_to_parallel
+from stable_baselines3 import PPO
 
 DEFAULT_PRESET = "fair"
 

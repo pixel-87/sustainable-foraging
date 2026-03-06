@@ -3,9 +3,8 @@ import logging
 import time
 
 import gymnasium as gym
-import numpy as np
-
 import lbforaging  # noqa
+import numpy as np
 from lbforaging.foraging import AECForagingEnv
 
 logger = logging.getLogger(__name__)

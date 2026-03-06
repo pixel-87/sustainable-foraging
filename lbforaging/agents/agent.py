@@ -19,9 +19,7 @@ class BaseAgent:
         return getattr(self.player, item)
 
     def _step(self, obs):
-        self.observed_position = next(
-            (x for x in obs.players if x.is_self), None
-        ).position
+        self.observed_position = next((x for x in obs.players if x.is_self), None).position
 
         # saves the action to the history
         action = self.step(obs)

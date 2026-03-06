@@ -20,7 +20,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 THEME = {
     "fig": "#f6f3ed",
     "axes": "#fffdf8",
@@ -101,7 +100,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
 def load_csv(csv_path: Path) -> dict[str, np.ndarray]:
     rows: list[dict[str, str]] = []
-    with open(csv_path, "r") as f:
+    with open(csv_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
             rows.append(row)
@@ -666,8 +665,8 @@ def plot_compare(
         summ = s["summary"]
         print(
             f"{s['run_dir'].name:28} "
-            f"{str(cfg.get('preset', '')):8} "
-            f"{str(cfg.get('algorithm', '')):8} "
+            f"{cfg.get('preset', '')!s:8} "
+            f"{cfg.get('algorithm', '')!s:8} "
             f"{summ['reward_last_q']:10.3f} "
             f"{summ['foods_last_q']:8.3f} "
             f"{summ['coop_last_q']:8.1%} "

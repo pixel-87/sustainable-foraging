@@ -14,12 +14,11 @@ You can control the interaction with the following keys:
 - ESC: exit
 """
 
-from argparse import ArgumentParser
 import warnings
+from argparse import ArgumentParser
 
-import numpy as np
 import gymnasium as gym
-
+import numpy as np
 from lbforaging.foraging.environment import Action
 
 

@@ -62,13 +62,11 @@ def get_display(spec):
         return pyglet.canvas.Display(spec)
     else:
         raise error.Error(
-            "Invalid display specification: {}. (Must be a string like :0 or None.)".format(
-                spec
-            )
+            f"Invalid display specification: {spec}. (Must be a string like :0 or None.)"
         )
 
 
-class Viewer(object):
+class Viewer:
     def __init__(self, world_size):
         display = get_display(None)
         self.rows, self.cols = world_size
@@ -78,9 +76,7 @@ class Viewer(object):
 
         self.width = 1 + self.cols * (self.grid_size + 1)
         self.height = 1 + self.rows * (self.grid_size + 1)
-        self.window = pyglet.window.Window(
-            width=self.width, height=self.height, display=display
-        )
+        self.window = pyglet.window.Window(width=self.width, height=self.height, display=display)
         self.window.on_close = self.window_closed_by_user
         self.isopen = True
 
@@ -101,8 +97,6 @@ class Viewer(object):
     def window_closed_by_user(self):
         self.isopen = False
         exit()
-
-
 
     def render(self, env, return_rgb_array=False):
         arr = []
@@ -213,11 +207,7 @@ class Viewer(object):
         radius = self.grid_size / 5
 
         badge_x = col * (self.grid_size + 1) + (3 / 4) * (self.grid_size + 1)
-        badge_y = (
-            self.height
-            - (self.grid_size + 1) * (row + 1)
-            + (1 / 4) * (self.grid_size + 1)
-        )
+        badge_y = self.height - (self.grid_size + 1) * (row + 1) + (1 / 4) * (self.grid_size + 1)
 
         # make a circle
         verts = []

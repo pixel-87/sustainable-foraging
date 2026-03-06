@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict, namedtuple
 from enum import Enum
 from itertools import product
-from typing import ClassVar, Iterable
+from typing import ClassVar
 
 import gymnasium as gym
 import numpy as np
@@ -98,7 +98,7 @@ class ForagingEnv(AECEnv):
         max_energy=50,
         food_energy_value=10,
         energy_depletion_rate=1,
-        food_regeneration_rate=1.5,  # α: logistic replenishment rate (must be > 1)
+        food_regeneration_rate=1.5,  # a: logistic replenishment rate (must be > 1)
         num_food_zones=2,
         normalize_reward=True,
         grid_observation=False,
@@ -147,7 +147,9 @@ class ForagingEnv(AECEnv):
         self._agent_selector = AgentSelector(self.possible_agents)
 
         self.action_spaces = {agent: gym.spaces.Discrete(6) for agent in self.possible_agents}
-        self.observation_spaces = {agent: self._get_observation_space() for agent in self.possible_agents}
+        self.observation_spaces = {
+            agent: self._get_observation_space() for agent in self.possible_agents
+        }
 
         self._np_random, _ = seeding.np_random(None)
 
@@ -213,9 +215,7 @@ class ForagingEnv(AECEnv):
         low_obs = np.array(min_obs)
         high_obs = np.array(max_obs)
         assert low_obs.shape == high_obs.shape
-        return gym.spaces.Box(
-            low=low_obs, high=high_obs, shape=low_obs.shape, dtype=np.float32
-        )
+        return gym.spaces.Box(low=low_obs, high=high_obs, shape=low_obs.shape, dtype=np.float32)
 
     @classmethod
     def from_obs(cls, obs):
@@ -259,9 +259,7 @@ class ForagingEnv(AECEnv):
 
     def _gen_valid_moves(self):
         self._valid_actions = {
-            player: [
-                action for action in Action if self._is_valid_action(player, action)
-            ]
+            player: [action for action in Action if self._is_valid_action(player, action)]
             for player in self.players
         }
 
@@ -273,12 +271,8 @@ class ForagingEnv(AECEnv):
             ]
 
         return (
-            self.field[
-                max(row - distance, 0) : min(row + distance + 1, self.rows), col
-            ].sum()
-            + self.field[
-                row, max(col - distance, 0) : min(col + distance + 1, self.cols)
-            ].sum()
+            self.field[max(row - distance, 0) : min(row + distance + 1, self.rows), col].sum()
+            + self.field[row, max(col - distance, 0) : min(col + distance + 1, self.cols)].sum()
         )
 
     def adjacent_food(self, row, col):
@@ -317,7 +311,7 @@ class ForagingEnv(AECEnv):
 
         while food_count < max_num_food and attempts < 1000:
             attempts += 1
-            
+
             # Pick a random food zone
             if self.food_zones:
                 zone = self.food_zones[self._np_random.integers(0, len(self.food_zones))]
@@ -423,22 +417,16 @@ class ForagingEnv(AECEnv):
                 )
                 for a in self.players
                 if (
-                    min(
-                        self._transform_to_neighborhood(
-                            player.position, self.sight, a.position
-                        )
-                    )
+                    min(self._transform_to_neighborhood(player.position, self.sight, a.position))
                     >= 0
                 )
-                and max(
-                    self._transform_to_neighborhood(
-                        player.position, self.sight, a.position
-                    )
-                )
+                and max(self._transform_to_neighborhood(player.position, self.sight, a.position))
                 <= 2 * self.sight
             ],
             # todo also check max?
-            field=np.copy(self.neighborhood(*player.position, self.sight)) if player.position is not None else np.zeros((2 * self.sight + 1, 2 * self.sight + 1), np.int32),
+            field=np.copy(self.neighborhood(*player.position, self.sight))
+            if player.position is not None
+            else np.zeros((2 * self.sight + 1, 2 * self.sight + 1), np.int32),
             game_over=self.game_over,
             sight=self.sight,
             current_step=self.current_step,
@@ -490,16 +478,12 @@ class ForagingEnv(AECEnv):
                 continue
             player_x, player_y = player.position
             if self._observe_agent_energy:
-                agents_layer[player_x + self.sight, player_y + self.sight] = (
-                    player.energy
-                )
+                agents_layer[player_x + self.sight, player_y + self.sight] = player.energy
             else:
                 agents_layer[player_x + self.sight, player_y + self.sight] = 1
 
         foods_layer = np.zeros(grid_shape, dtype=np.float32)
-        foods_layer[self.sight : -self.sight, self.sight : -self.sight] = (
-            self.field.copy()
-        )
+        foods_layer[self.sight : -self.sight, self.sight : -self.sight] = self.field.copy()
 
         access_layer = np.ones(grid_shape, dtype=np.float32)
         # out of bounds not accessible
@@ -533,10 +517,12 @@ class ForagingEnv(AECEnv):
         if self._grid_observation:
             layers = self._make_global_grid_arrays()
             agents_bounds = [
-                self._get_agent_grid_bounds(*player.position) if player.position is not None else None
+                self._get_agent_grid_bounds(*player.position)
+                if player.position is not None
+                else None
                 for player in self.players
             ]
-            
+
             # Reorder to match players
             ordered_nobs = []
             for i, bounds in enumerate(agents_bounds):
@@ -544,16 +530,20 @@ class ForagingEnv(AECEnv):
                     start_x, end_x, start_y, end_y = bounds
                     ordered_nobs.append(layers[:, start_x:end_x, start_y:end_y])
                 else:
-                    ordered_nobs.append(np.zeros(self.observation_spaces[self.possible_agents[i]].shape, dtype=np.float32))
+                    ordered_nobs.append(
+                        np.zeros(
+                            self.observation_spaces[self.possible_agents[i]].shape, dtype=np.float32
+                        )
+                    )
             nobs = tuple(ordered_nobs)
         else:
             nobs = tuple([self._make_obs_array(obs) for obs in observations])
 
         # check the space of obs
         for i, obs in enumerate(nobs):
-            assert self.observation_spaces[self.possible_agents[i]].contains(
-                obs
-            ), f"obs space error: obs: {obs}, obs_space: {self.observation_spaces[self.possible_agents[i]]}"
+            assert self.observation_spaces[self.possible_agents[i]].contains(obs), (
+                f"obs space error: obs: {obs}, obs_space: {self.observation_spaces[self.possible_agents[i]]}"
+            )
 
         return nobs
 
@@ -572,10 +562,10 @@ class ForagingEnv(AECEnv):
 
     def reset(self, seed=None, options=None):
         if seed is not None:
-             self._np_random, seed = seeding.np_random(seed)
+            self._np_random, seed = seeding.np_random(seed)
 
         self.field = np.zeros(self.field_size, np.int32)
-        
+
         # Generate food zones
         self.food_zones = []
         for _ in range(self.num_food_zones):
@@ -634,10 +624,7 @@ class ForagingEnv(AECEnv):
 
     def step(self, action):
         """Execute one agent's action following the AEC buffered execution pattern."""
-        if (
-            self.terminations[self.agent_selection]
-            or self.truncations[self.agent_selection]
-        ):
+        if self.terminations[self.agent_selection] or self.truncations[self.agent_selection]:
             self._was_dead_step(action)
             return
 
@@ -752,9 +739,7 @@ class ForagingEnv(AECEnv):
             frow, fcol = food_location
 
             adj_players = self.adjacent_players(frow, fcol)
-            adj_players = [
-                p for p in adj_players if p in loading_players or p is player
-            ]
+            adj_players = [p for p in adj_players if p in loading_players or p is player]
 
             # remove other participants from the set so we don't process them again
             loading_players = loading_players - set(adj_players)
@@ -787,9 +772,7 @@ class ForagingEnv(AECEnv):
                 p.position = None
                 any_dead = True
 
-        self._game_over = (
-            any_dead or self._max_episode_steps <= self.current_step
-        )
+        self._game_over = any_dead or self._max_episode_steps <= self.current_step
         self._gen_valid_moves()
 
         for p in self.players:
@@ -820,24 +803,24 @@ class ForagingEnv(AECEnv):
         for p, a in zip(self.players, actions):
             name = a.name
             self._step_action_counts[name] = self._step_action_counts.get(name, 0) + 1
-            
+
             # Moving takes extra energy
             if not p.is_dead and a in [Action.NORTH, Action.SOUTH, Action.EAST, Action.WEST]:
                 p.energy -= self.energy_depletion_rate
 
         loading_players = self._resolve_player_movements(actions)
         self._process_food_loading(loading_players)
-        
+
         # Logistic food regeneration (SFP Equation 11)
-        # r_{t+1} = α * r_t - (α - 1) / K * r_t² - total_foraged
+        # r_{t+1} = a * r_t - (a - 1) / K * r_t² - total_foraged
         # Uses continuous _food_level for accurate math, then syncs the grid.
-        alpha = self.food_regeneration_rate  # replenishment rate (α > 1)
-        K = float(self.max_num_food)         # carrying capacity
-        r_t = self._food_level               # pre-foraging continuous level
+        alpha = self.food_regeneration_rate  # replenishment rate (a > 1)
+        K = float(self.max_num_food)  # carrying capacity
+        r_t = self._food_level  # pre-foraging continuous level
         total_foraged = float(self._step_foods_collected)
 
         if K > 0 and r_t > 0:
-            r_next = alpha * r_t - (alpha - 1.0) / K * (r_t ** 2) - total_foraged
+            r_next = alpha * r_t - (alpha - 1.0) / K * (r_t**2) - total_foraged
         else:
             # Point of no return: if r_t == 0, no regrowth is possible
             r_next = -total_foraged
@@ -847,7 +830,7 @@ class ForagingEnv(AECEnv):
 
         # Sync grid to match the calculated food level
         current_grid_food = int(np.count_nonzero(self.field))
-        target_grid_food = int(round(r_next))
+        target_grid_food = round(r_next)
         diff = target_grid_food - current_grid_food
 
         if diff > 0:
@@ -874,8 +857,12 @@ class ForagingEnv(AECEnv):
         centers = food_positions + list(self.food_zones)
         if not centers:
             # If no food and no zones, fallback to random interior positions
-            centers = [(self._np_random.integers(1, self.rows - 1),
-                        self._np_random.integers(1, self.cols - 1))]
+            centers = [
+                (
+                    self._np_random.integers(1, self.rows - 1),
+                    self._np_random.integers(1, self.cols - 1),
+                )
+            ]
 
         while spawned < count and attempts < 1000:
             attempts += 1

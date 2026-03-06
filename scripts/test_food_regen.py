@@ -1,5 +1,5 @@
 import numpy as np
-from lbforaging.foraging.aecEnvironment import ForagingEnv, Action
+from lbforaging.foraging.aecEnvironment import Action, ForagingEnv
 
 
 def test_logistic_growth():

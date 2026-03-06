@@ -2,7 +2,6 @@ from itertools import product
 
 from gymnasium import register
 
-
 sizes = range(5, 20)
 players = range(2, 10)
 foods = range(1, 10)

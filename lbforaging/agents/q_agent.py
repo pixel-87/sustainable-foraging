@@ -1,13 +1,12 @@
 import random
-from itertools import repeat, product
+from itertools import product, repeat
 
 import numpy as np
 import pandas as pd
 
 from lbforaging.agents import H1, BaseAgent
-from lbforaging.foraging.environment import ForagingEnv as Env
 from lbforaging.foraging.environment import Action
-
+from lbforaging.foraging.environment import ForagingEnv as Env
 
 _CACHE = None
 
@@ -85,14 +84,10 @@ class QLearningTable:
         if state not in self.q_table.index:
             # append new state to q table
             self.q_table = self.q_table.append(
-                pd.Series(
-                    [0] * len(self.actions), index=self.q_table.columns, name=state
-                )
+                pd.Series([0] * len(self.actions), index=self.q_table.columns, name=state)
             )
             self.e_table = self.e_table.append(
-                pd.Series(
-                    [0] * len(self.actions), index=self.q_table.columns, name=state
-                )
+                pd.Series([0] * len(self.actions), index=self.q_table.columns, name=state)
             )
 
 
@@ -128,9 +123,7 @@ class QAgent(BaseAgent):
             for i, player in enumerate(env.players):
                 if i == player_no:
                     if random.random() > self.e_2:
-                        action = self.Q.choose_action(
-                            self._make_state(observations[i])
-                        )[player_no]
+                        action = self.Q.choose_action(self._make_state(observations[i]))[player_no]
                     else:
                         action = random.choice(observations[i].actions)
                 else:
@@ -169,9 +162,7 @@ class QAgent(BaseAgent):
 
     def step(self, obs):
         if self.Q is None:
-            self.Q = QLearningTable(
-                actions=list(product(*repeat(Action, len(obs.players))))
-            )
+            self.Q = QLearningTable(actions=list(product(*repeat(Action, len(obs.players)))))
 
         # observe current state s
         state = self._make_state(obs)

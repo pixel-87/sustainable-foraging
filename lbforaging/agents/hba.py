@@ -1,13 +1,13 @@
+import operator
+import random
 from collections import defaultdict
 from functools import reduce
 from itertools import product
-import operator
-import random
 
 import numpy as np
 
-from lbforaging.agents.q_agent import QAgent
 from lbforaging.agents.heuristic_agent import H1, H2, H3, H4
+from lbforaging.agents.q_agent import QAgent
 from lbforaging.foraging.environment import ForagingEnv as Env
 
 
@@ -68,7 +68,7 @@ class HBAAgent(QAgent):
 
     def generate_typespace_moves(self, env, exclude_player=None):
         moves = np.empty((len(env.players), len(self.type_space)), dtype=object)
-        for i, player in enumerate(env.players):
+        for i, _player in enumerate(env.players):
             # if i == exclude_player:  # todo this player can be excluded (because it's us)
             #     continue
             obs = env._make_obs(env.players[i])
@@ -83,9 +83,7 @@ class HBAAgent(QAgent):
 
         env = Env.from_obs(self.prev_obs)
         moves = self.generate_typespace_moves(env, player_no)
-        truth = np.array(
-            [[p.history[-1] for p in obs.players]] * len(self.type_space)
-        ).T
+        truth = np.array([[p.history[-1] for p in obs.players]] * len(self.type_space)).T
 
         likelihood = np.equal(truth, moves).astype(float)
         likelihood[likelihood == 0] = 0.01
@@ -96,12 +94,12 @@ class HBAAgent(QAgent):
 
         gtw = self.gtw(10, 0.05, 3)
 
-        for i, p in enumerate(obs.players):
+        for i, _p in enumerate(obs.players):
             if i == player_no:
                 continue
             L = np.zeros(len(self.type_space))
-            for t, l in enumerate(self.prev_likelihood):
-                L += l[i] * gtw(t)
+            for t, lik in enumerate(self.prev_likelihood):
+                L += lik[i] * gtw(t)
 
             self.belief[i, :] = self.belief[i, :] * L
             self.belief[i, :] = self.belief[i, :] / sum(self.belief[i, :])
@@ -126,9 +124,7 @@ class HBAAgent(QAgent):
             for i, player in enumerate(env.players):
                 if i == player_no:
                     if random.random() > self.e_2:
-                        action = self.Q.choose_action(
-                            self._make_state(observations[i])
-                        )[player_no]
+                        action = self.Q.choose_action(self._make_state(observations[i]))[player_no]
                     else:
                         action = random.choice(observations[i].actions)
                 else:

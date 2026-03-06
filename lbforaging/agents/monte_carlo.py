@@ -4,13 +4,12 @@ import pickle
 import random
 import time
 
-import plotly.graph_objs as go
 import networkx as nx
+import plotly.graph_objs as go
 from networkx.drawing.nx_pydot import graphviz_layout
 
-from lbforaging.foraging.environment import ForagingEnv as Env
 from lbforaging.agents.agent import BaseAgent
-
+from lbforaging.foraging.environment import ForagingEnv as Env
 
 MCTS_DEPTH = 15
 
@@ -79,9 +78,7 @@ def plot_graph(G):
         node_trace["x"].append(x)
         node_trace["y"].append(y)
 
-        node_info = "Visits: +{0}<br>Rewards: {1}<br>Score: {2}".format(
-            node.visits, node.reward, node.state.players[0].score
-        )
+        node_info = f"Visits: +{node.visits}<br>Rewards: {node.reward}<br>Score: {node.state.players[0].score}"
 
         node_trace["text"].append(node_info)
 
@@ -138,7 +135,7 @@ class Node:
         new_state = pickle.loads(pickle.dumps(self.state, pickle.HIGHEST_PROTOCOL))
         new_is_terminal = False
 
-        observations = new_state.step(move)
+        _ = new_state.step(move)
 
         if new_state.game_over:
             new_is_terminal = True
@@ -159,17 +156,21 @@ class Node:
     def best_child(self, c=2, h=10):
         my_id = 0  # todo fix this
 
-        ucb1 = lambda u: (
-            u.reward / u.visits
-            + c * math.sqrt(math.log(self.root.visits / u.visits))
-            + h * u.state.players[my_id].score / u.visits
-        )
+        def ucb1(u):
+            return (
+                u.reward / u.visits
+                + c * math.sqrt(math.log(self.root.visits / u.visits))
+                + h * u.state.players[my_id].score / u.visits
+            )
+
         best = max(self.children, key=ucb1)
 
         return best
 
     def most_visited_child(self):
-        most_visited = lambda u: u.visits
+        def most_visited(u):
+            return u.visits
+
         best = max(self.children, key=most_visited)
         return best
 
