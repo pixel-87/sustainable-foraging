@@ -1,32 +1,17 @@
 {
   lib,
-  python3Packages,
+  pythonSet,
+  workspace,
   libGL,
   libGLU,
   xorg,
   version ? "unstable",
 }:
 
-python3Packages.buildPythonApplication {
+(pythonSet.mkVirtualEnv "sustainable-foraging-env" workspace.deps.default).overrideAttrs (_: {
   pname = "sustainable-foraging";
   inherit version;
 
-  src = lib.cleanSource ../.;
-
-  pyproject = true;
-
-  buildInputs = [
-  libGL
-  libGLU
-  xorg.libX11
-  xorg.libXcursor
-  xorg.libXinerama
-  xorg.libXi
-];
-
-  dependencies = with python3Packages; [ ];
-
-  nativeCheckInputs = [ python3Packages.pytestCheckHook ];
 
   meta = {
     description = "Sustainable Foraging with PettingZoo";
@@ -35,4 +20,4 @@ python3Packages.buildPythonApplication {
     maintainers = with lib.maintainers; [ pixel-87 ];
     mainProgram = "sustainable-foraging";
   };
-}
+})

@@ -180,3 +180,4 @@ result/
 lb_foraging_tensorboard/
 logs/
 ppo_lbforaging.zip
+result

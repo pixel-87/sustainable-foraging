@@ -4,7 +4,9 @@
   stdenv,
 
   # python tooling
-  python3,
+  pythonSet,
+  workspace,
+
   uv,
   ty,
   ruff,
@@ -21,27 +23,28 @@
 
 let
   defaultPackage = callPackage ./default.nix { };
+  virtualenv = pythonSet.mkVirtualEnv "sustainable-foraging-dev-env" workspace.deps.all;
 in
 mkShell {
-  inputsFrom = [ defaultPackage ];
+  inputsFrom = [ virtualenv ];
 
   packages = [
-    python3
     uv
     ty 
     ruff
     xvfb-run
   ];
 
-  shellHook = ''
-    export LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib:${zlib}/lib:${libGL}/lib:${libGLU}/lib:${xorg.libX11}/lib:${xorg.libXcursor}/lib:${xorg.libXi}/lib:${xorg.libXinerama}/lib:${freetype}/lib:${fontconfig.lib}/lib:$LD_LIBRARY_PATH
+  env = {
+    UV_NO_SYNC = "1";
+    UV_PYTHON = pythonSet.python.interpreter;
+    UV_PYTHON_DOWNLOADS = "never";
+  };
 
-    if [ ! -d ".venv" ]; then
-      uv venv
-    fi
-    source .venv/bin/activate
-    # Sync pinned dependencies into the venv (do not install editable egg-link)
-    uv sync
+  shellHook = ''
+    unset PYTHONPATH
+    export REPO_ROOT=$(git rev-parse --show-toplevel)
+    export LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib:${zlib}/lib:${libGL}/lib:${libGLU}/lib:${xorg.libX11}/lib:${xorg.libXcursor}/lib:${xorg.libXi}/lib:${xorg.libXinerama}/lib:${freetype}/lib:${fontconfig.lib}/lib:$LD_LIBRARY_PATH
   '';
 
 }
