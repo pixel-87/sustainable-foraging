@@ -16,7 +16,7 @@
   meta = {
     description = "Sustainable Foraging with PettingZoo";
     homepage = "https://github.com/pixel-87/sustainable-foraging";
-    license = lib.licenses.gpl3Plus;
+    license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ pixel-87 ];
     mainProgram = "sustainable-foraging";
   };
