@@ -244,6 +244,7 @@ def train(
     preset: str = DEFAULT_PRESET,
     num_envs: int = TRAINING_DEFAULTS["num_envs"],
     batch_size: int = TRAINING_DEFAULTS["batch_size"],
+    gamma: float = 0.99,
 ):
     if run_name is None:
         run_name = time.strftime("run_%Y%m%d_%H%M%S")
@@ -265,6 +266,7 @@ def train(
         "total_timesteps": total_timesteps,
         "learning_rate": lr,
         "batch_size": batch_size,
+        "gamma": gamma,
         "num_envs": num_envs,
         "algorithm": "PPO",
         "library": "SB3",
@@ -301,6 +303,7 @@ def train(
         verbose=1,
         learning_rate=lr,
         batch_size=batch_size,
+        gamma=gamma,
         tensorboard_log=str(tb_dir),
     )
 
@@ -398,6 +401,7 @@ if __name__ == "__main__":
         default=TRAINING_DEFAULTS["batch_size"],
         help=f"Batch size for PPO updates (default: {TRAINING_DEFAULTS['batch_size']})",
     )
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor (default: 0.99)")
     args = parser.parse_args()
 
     if args.list_presets:
@@ -419,4 +423,5 @@ if __name__ == "__main__":
         preset=args.preset,
         num_envs=args.num_envs,
         batch_size=args.batch_size,
+        gamma=args.gamma,
     )
