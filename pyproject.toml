@@ -11,12 +11,13 @@ license = { text = "GPL-3.0+" }
 authors = [
   { name = "Filippos Christianos" },
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 dependencies = [
   "numpy",
   "gymnasium",
   "pyglet<2",
   "pettingzoo",
+  "xuance>=1.4.1",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +38,10 @@ train = [
   "supersuit",
   "tensorboard",
   "setuptools>=68.0.0",
+]
+rllib = [
+    "ray[rllib]>=2.9",
+    "torch>=2.8.0",
 ]
 
 [project.urls]
@@ -104,5 +109,9 @@ dev = [
     "stable-baselines3>=2.0.0",
     "supersuit>=3.8.1",
     "tensorboard>=2.11.2",
+    "torch>=1.13.1",
+]
+rllib = [
+    "ray[rllib]>=2.9",
     "torch>=1.13.1",
 ]
