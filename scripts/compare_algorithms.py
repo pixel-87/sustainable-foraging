@@ -81,7 +81,12 @@ def smooth(v: np.ndarray, window: int = 25) -> np.ndarray:
         return v.astype(float)
     w = max(3, min(window, len(v)))
     w += 1 - w % 2  # ensure odd
-    return np.convolve(v, np.ones(w) / w, mode="same")
+    # Pad at data edges to prevent np.convolve from padding with zeros.
+    # We use "reflect" instead of "edge" so that if the very last episode is
+    # an outlier (e.g. 0.0), we don't duplicate it 250 times and tank the graph!
+    pad_w = w // 2
+    padded_v = np.pad(v, (pad_w, pad_w), mode="reflect")
+    return np.convolve(padded_v, np.ones(w) / w, mode="valid")
 
 
 def rolling_std(v: np.ndarray, window: int = 25) -> np.ndarray:
@@ -99,7 +104,7 @@ def _label(config: dict[str, Any], run_dir: Path) -> str:
     return run_dir.name
 
 
-def load_run(run_dir: Path) -> dict[str, Any] | None:
+def load_run(run_dir: Path, max_steps: int = 0) -> dict[str, Any] | None:
     csv_path = run_dir / "metrics.csv"
     cfg_path = run_dir / "config.json"
     if not csv_path.exists():
@@ -113,6 +118,9 @@ def load_run(run_dir: Path) -> dict[str, Any] | None:
     rows: list[dict[str, str]] = []
     with open(csv_path) as f:
         for row in csv.DictReader(f):
+            ts = int(row.get("timestep", 0) or 0)
+            if max_steps > 0 and ts > max_steps:
+                continue
             rows.append(row)
     if not rows:
         return None
@@ -127,10 +135,8 @@ def load_run(run_dir: Path) -> dict[str, Any] | None:
     rew = col_f("reward_total")
     food = col_i("foods_collected")
     leng = col_i("length")
-    coop = col_i("cooperative_collections")
     rem = col_i("food_remaining_end")
 
-    sf = np.maximum(food, 1)
     sl = np.maximum(leng, 1)
     n = len(ts)
     q3 = max(0, 3 * n // 4)
@@ -145,13 +151,11 @@ def load_run(run_dir: Path) -> dict[str, Any] | None:
         "foods": food.astype(float),
         "remaining": rem.astype(float),
         "efficiency": food / sl,
-        "coop_rate": coop / sf,
         # Scalars (last 25 %)
         "reward_lq": float(np.mean(rew[q3:])),
         "reward_lq_sd": float(np.std(rew[q3:])),
         "foods_lq": float(np.mean(food[q3:])),
         "eff_lq": float(np.mean(food[q3:] / sl[q3:])),
-        "coop_lq": float(np.mean(coop[q3:] / sf[q3:])),
         "rem_lq": float(np.mean(rem[q3:])),
     }
 
@@ -159,7 +163,7 @@ def load_run(run_dir: Path) -> dict[str, Any] | None:
 # ── Plot ─────────────────────────────────────────────────────────────────────
 
 
-def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None:
+def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_only: bool = False) -> None:
     runs.sort(key=lambda r: r["reward_lq"], reverse=True)
     N = len(runs)
     clr = [PALETTE[i % len(PALETTE)] for i in range(N)]
@@ -177,8 +181,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     ax = fig.add_subplot(gs[0, 0:2])
     for i, r in enumerate(runs):
         mu = smooth(r["reward"], window)
-        sd = rolling_std(r["reward"], window)
-        ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
+        if not lines_only:
+            sd = rolling_std(r["reward"], window)
+            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
         ax.plot(r["ts"], mu, color=clr[i], lw=2.2, label=r["label"])
     ax.set_title("Episode Reward")
     ax.set_xlabel("Timesteps")
@@ -213,8 +218,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     ax = fig.add_subplot(gs[1, 0])
     for i, r in enumerate(runs):
         mu = smooth(r["efficiency"], window)
-        sd = rolling_std(r["efficiency"], window)
-        ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
+        if not lines_only:
+            sd = rolling_std(r["efficiency"], window)
+            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
         ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
     ax.set_title("Collection Efficiency")
     ax.set_xlabel("Timesteps")
@@ -226,8 +232,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     ax = fig.add_subplot(gs[1, 1])
     for i, r in enumerate(runs):
         mu = smooth(r["foods"], window)
-        sd = rolling_std(r["foods"], window)
-        ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
+        if not lines_only:
+            sd = rolling_std(r["foods"], window)
+            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
         ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
     ax.set_title("Foods Collected")
     ax.set_xlabel("Timesteps")
@@ -239,8 +246,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     ax = fig.add_subplot(gs[1, 2])
     for i, r in enumerate(runs):
         mu = smooth(r["remaining"], window)
-        sd = rolling_std(r["remaining"], window)
-        ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
+        if not lines_only:
+            sd = rolling_std(r["remaining"], window)
+            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
         ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
     env_cfg = runs[0]["config"].get("environment", {})
     K = env_cfg.get("max_num_food")
@@ -253,24 +261,10 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     ax.grid(True)
     ax.legend(fontsize=7)
 
-    # 6 ─ Cooperation
-    ax = fig.add_subplot(gs[2, 0])
-    for i, r in enumerate(runs):
-        mu = smooth(r["coop_rate"], window)
-        sd = rolling_std(r["coop_rate"], window)
-        ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
-        ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
-    ax.set_title("Cooperation Rate")
-    ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Fraction cooperative")
-    ax.set_ylim(-0.02, 1.02)
-    ax.grid(True)
-    ax.legend(fontsize=7)
-
-    # 7 ─ Scoreboard
-    ax = fig.add_subplot(gs[2, 1:3])
+    # 6 ─ Scoreboard
+    ax = fig.add_subplot(gs[2, :])
     ax.axis("off")
-    hdrs = ["Model", "Preset", "Reward ↓", "Foods", "Efficiency", "Coop %", "Food Left"]
+    hdrs = ["Model", "Preset", "Reward ↓", "Foods", "Efficiency", "Food Left"]
     rows_t = []
     row_clr = []
     for i, r in enumerate(runs):
@@ -281,7 +275,6 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
                 f"{r['reward_lq']:.2f} ± {r['reward_lq_sd']:.2f}",
                 f"{r['foods_lq']:.1f}",
                 f"{r['eff_lq']:.4f}",
-                f"{r['coop_lq']:.1%}",
                 f"{r['rem_lq']:.1f}",
             ]
         )
@@ -316,7 +309,7 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
     print("=" * W)
     print(
         f"  {'#':>2}  {'Model':<18} {'Preset':<8} {'Reward':>14}  {'Foods':>6}  "
-        f"{'Eff':>8}  {'Coop':>6}  {'Food Left':>9}"
+        f"{'Eff':>8}  {'Food Left':>9}"
     )
     print("-" * W)
     for i, r in enumerate(runs):
@@ -324,7 +317,7 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
             f"  {i + 1:>2}  {r['label']:<18} {r['preset']:<8} "
             f"{r['reward_lq']:>7.2f}±{r['reward_lq_sd']:<5.2f}  "
             f"{r['foods_lq']:>6.1f}  {r['eff_lq']:>8.4f}  "
-            f"{r['coop_lq']:>6.1%}  {r['rem_lq']:>9.1f}"
+            f"{r['rem_lq']:>9.1f}"
         )
     print("=" * W)
 
@@ -341,7 +334,6 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
                 "reward_std",
                 "foods",
                 "efficiency",
-                "coop_rate",
                 "food_remaining",
                 "run_dir",
             ]
@@ -356,7 +348,6 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool) -> None
                     f"{r['reward_lq_sd']:.4f}",
                     f"{r['foods_lq']:.2f}",
                     f"{r['eff_lq']:.4f}",
-                    f"{r['coop_lq']:.4f}",
                     f"{r['rem_lq']:.2f}",
                     r["run_dir"],
                 ]
@@ -380,7 +371,9 @@ def main() -> None:
     ap.add_argument("--preset", type=str, default=None, help="Filter by preset")
     ap.add_argument("--top", type=int, default=0, help="Top N models (0=all)")
     ap.add_argument("--window", type=int, default=25, help="Smoothing window")
+    ap.add_argument("--max-steps", type=int, default=0, help="Clip all graphs to this maximum timestep (e.g. 200000)")
     ap.add_argument("--no-show", action="store_true")
+    ap.add_argument("--lines-only", action="store_true", help="Plot only solid lines, no std dev bands")
     args = ap.parse_args()
 
     if args.run_dirs:
@@ -392,7 +385,7 @@ def main() -> None:
         print("No runs found. Train first:\n  uv run python -m scripts.train_sb3 --preset fair")
         sys.exit(1)
 
-    runs = [r for d in dirs if (r := load_run(d)) is not None]
+    runs = [r for d in dirs if (r := load_run(d, args.max_steps)) is not None]
     if not runs:
         print("No valid run data.")
         sys.exit(1)
@@ -416,7 +409,7 @@ def main() -> None:
     if not show and not args.no_show:
         print("Non-interactive backend; saving to file only.")
 
-    plot(runs, out, window=args.window, show=show)
+    plot(runs, out, window=args.window, show=show, lines_only=args.lines_only)
 
 
 if __name__ == "__main__":
