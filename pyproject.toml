@@ -18,6 +18,7 @@ dependencies = [
   "pyglet<2",
   "pettingzoo",
   "xuance>=1.4.1",
+  "matplotlib>=3.9.4",
 ]
 
 [project.optional-dependencies]

@@ -759,7 +759,7 @@ class ForagingEnv(AECEnv):
                 a.energy = min(a.max_energy, a.energy + energy_per_player)
                 e_after = a.energy
                 k = self.food_energy_value  # scaling constant
-                a.reward = float(k * (np.log(e_after) - np.log(e_before)))
+                a.reward += float(k * (np.log(e_after) - np.log(e_before)))
 
             # and the food is removed
             self.field[frow, fcol] = 0

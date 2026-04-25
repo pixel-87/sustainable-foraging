@@ -150,13 +150,14 @@ def load_run(run_dir: Path, max_steps: int = 0) -> dict[str, Any] | None:
         "reward": rew,
         "foods": food.astype(float),
         "remaining": rem.astype(float),
-        "efficiency": food / sl,
+        "efficiency": sl / np.maximum(food.astype(float), 1.0),
         # Scalars (last 25 %)
         "reward_lq": float(np.mean(rew[q3:])),
         "reward_lq_sd": float(np.std(rew[q3:])),
         "foods_lq": float(np.mean(food[q3:])),
-        "eff_lq": float(np.mean(food[q3:] / sl[q3:])),
+        "eff_lq": float(np.mean(sl[q3:] / np.maximum(food[q3:].astype(float), 1.0))),
         "rem_lq": float(np.mean(rem[q3:])),
+        "len_lq": float(np.mean(sl[q3:])),
     }
 
 
@@ -222,9 +223,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
             sd = rolling_std(r["efficiency"], window)
             ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
         ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
-    ax.set_title("Collection Efficiency")
-    ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Foods / Step")
+    ax.set_title("Restraint (Timesteps per Food)")
+    ax.set_xlabel("Training Timesteps (Scale)")
+    ax.set_ylabel("Env Timesteps / Food")
     ax.grid(True)
     ax.legend(fontsize=7)
 
@@ -264,7 +265,7 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
     # 6 ─ Scoreboard
     ax = fig.add_subplot(gs[2, :])
     ax.axis("off")
-    hdrs = ["Model", "Preset", "Reward ↓", "Foods", "Efficiency", "Food Left"]
+    hdrs = ["Model", "Preset", "Reward ↓", "Foods", "Timesteps/Food", "Food Left", "Survival"]
     rows_t = []
     row_clr = []
     for i, r in enumerate(runs):
@@ -274,8 +275,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
                 r["preset"],
                 f"{r['reward_lq']:.2f} ± {r['reward_lq_sd']:.2f}",
                 f"{r['foods_lq']:.1f}",
-                f"{r['eff_lq']:.4f}",
+                f"{r['eff_lq']:.1f}",
                 f"{r['rem_lq']:.1f}",
+                f"{r['len_lq']:.1f}",
             ]
         )
         row_clr.append([clr[i] + "18"] * len(hdrs))
@@ -309,15 +311,15 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
     print("=" * W)
     print(
         f"  {'#':>2}  {'Model':<18} {'Preset':<8} {'Reward':>14}  {'Foods':>6}  "
-        f"{'Eff':>8}  {'Food Left':>9}"
+        f"{'Stp/Fd':>8}  {'Food Left':>9}  {'Survival':>8}"
     )
     print("-" * W)
     for i, r in enumerate(runs):
         print(
             f"  {i + 1:>2}  {r['label']:<18} {r['preset']:<8} "
             f"{r['reward_lq']:>7.2f}±{r['reward_lq_sd']:<5.2f}  "
-            f"{r['foods_lq']:>6.1f}  {r['eff_lq']:>8.4f}  "
-            f"{r['rem_lq']:>9.1f}"
+            f"{r['foods_lq']:>6.1f}  {r['eff_lq']:>8.1f}  "
+            f"{r['rem_lq']:>9.1f}  {r['len_lq']:>8.1f}"
         )
     print("=" * W)
 
@@ -335,6 +337,7 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
                 "foods",
                 "efficiency",
                 "food_remaining",
+                "survival_steps",
                 "run_dir",
             ]
         )
@@ -347,8 +350,9 @@ def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_o
                     f"{r['reward_lq']:.4f}",
                     f"{r['reward_lq_sd']:.4f}",
                     f"{r['foods_lq']:.2f}",
-                    f"{r['eff_lq']:.4f}",
+                    f"{r['eff_lq']:.1f}",
                     f"{r['rem_lq']:.2f}",
+                    f"{r['len_lq']:.1f}",
                     r["run_dir"],
                 ]
             )
