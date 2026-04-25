@@ -7,7 +7,7 @@ name = "sustainable-foraging"
 version = "2.0.0"
 description = "Sustainable Foraging environment for multi-agent RL"
 readme = "README.md"
-license = { text = "GPL-3.0+" }
+license = "Apache-2.0"
 authors = [
   { name = "Filippos Christianos" },
 ]
@@ -53,13 +53,13 @@ Repository = "https://github.com/pixel-87/sustainable-foraging"
 where = ["."]
 
 [tool.ty.src]
-include = ["lbforaging"]
+include = ["sustainable_foraging"]
 
 
 [tool.ruff]
 line-length = 100
 target-version = "py38"  # Bump to slightly newer, since 3.7 is really EOL
-src = ["lbforaging", "tests"] 
+src = ["sustainable_foraging", "tests"] 
 
 [tool.ruff.lint]
 select = [

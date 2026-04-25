@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from foraging.environment import Action
-from lbforaging.agents.agent import BaseAgent
+from sustainable_foraging.agents.agent import BaseAgent
 
 
 class HeuristicAgent(BaseAgent):

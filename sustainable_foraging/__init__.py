@@ -24,7 +24,7 @@ for s, p, f, mfl, c, po, pen in product(
             "-ind" if mfl else "",
             "-pen" if pen else "",
         ),
-        entry_point="lbforaging.foraging:ForagingEnv",
+        entry_point="sustainable_foraging.foraging:ForagingEnv",
         kwargs={
             "players": p,
             "field_size": (s, s),
@@ -49,7 +49,7 @@ def register_grid_envs():
                     "" if sight == s else f"-{sight}s",
                     "-ind" if mfl else "",
                 ),
-                entry_point="lbforaging.foraging:ForagingEnv",
+                entry_point="sustainable_foraging.foraging:ForagingEnv",
                 kwargs={
                     "players": p,
                     "field_size": (s, s),

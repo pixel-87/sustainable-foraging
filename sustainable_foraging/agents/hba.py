@@ -6,9 +6,9 @@ from itertools import product
 
 import numpy as np
 
-from lbforaging.agents.heuristic_agent import H1, H2, H3, H4
-from lbforaging.agents.q_agent import QAgent
-from lbforaging.foraging.environment import ForagingEnv as Env
+from sustainable_foraging.agents.heuristic_agent import H1, H2, H3, H4
+from sustainable_foraging.agents.q_agent import QAgent
+from sustainable_foraging.foraging.environment import ForagingEnv as Env
 
 
 class HBAAgent(QAgent):

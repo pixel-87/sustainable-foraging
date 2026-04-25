@@ -179,5 +179,5 @@ result/
 .direnv/
 lb_foraging_tensorboard/
 logs/
-ppo_lbforaging.zip
+ppo_sustainable_foraging.zip
 result

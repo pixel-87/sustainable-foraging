@@ -36,7 +36,7 @@ The benchmark protocol is documented in `docs/benchmark_protocol.md`.
 This is a PettingZoo AEC environment:
 
 ```python
-from lbforaging.foraging import AECForagingEnv
+from sustainable_foraging.foraging import AECForagingEnv
 
 env = AECForagingEnv(
     players=2,

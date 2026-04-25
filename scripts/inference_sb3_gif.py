@@ -13,8 +13,8 @@ from pathlib import Path
 import numpy as np
 import supersuit as ss
 import imageio
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import (
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
     get_preset,
     list_presets,
@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
         "--model",
         "-m",
         type=str,
-        default="ppo_lbforaging",
+        default="ppo_sustainable_foraging",
         help="Base name of the trained model zip file (without .zip extension)",
     )
     parser.add_argument(

@@ -6,7 +6,7 @@ This project uses a fixed benchmark protocol for fair algorithm comparisons.
 
 - Name: `sustainable_v1`
 - Presets: `easy`, `fair`, `hard`
-- Source of truth: `lbforaging/foraging/sustainable_benchmark.py`
+- Source of truth: `sustainable_foraging/foraging/sustainable_benchmark.py`
 
 ## Critical Alpha Threshold
 

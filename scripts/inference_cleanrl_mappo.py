@@ -15,8 +15,8 @@ import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import get_preset, list_presets
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import get_preset, list_presets
 from pettingzoo.utils import aec_to_parallel
 
 # ---------------------------------------------------------------------------

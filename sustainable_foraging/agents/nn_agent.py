@@ -1,6 +1,6 @@
 import random
 
-from lbforaging.agents.agent import BaseAgent
+from sustainable_foraging.agents.agent import BaseAgent
 
 
 class NNAgent(BaseAgent):

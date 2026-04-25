@@ -1,6 +1,6 @@
-from lbforaging.foraging.environment import ForagingEnv as GymForagingEnv  # noqa
-from lbforaging.foraging.aecEnvironment import ForagingEnv as AECForagingEnv  # noqa
-from lbforaging.foraging.sustainable_benchmark import (  # noqa
+from sustainable_foraging.foraging.environment import ForagingEnv as GymForagingEnv  # noqa
+from sustainable_foraging.foraging.aecEnvironment import ForagingEnv as AECForagingEnv  # noqa
+from sustainable_foraging.foraging.sustainable_benchmark import (  # noqa
     BENCHMARK_NAME,
     BENCHMARK_SEEDS,
     BENCHMARK_TRAINING_DEFAULTS,

@@ -33,8 +33,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import get_preset, get_training_defaults
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import get_preset, get_training_defaults
 from pettingzoo.utils import aec_to_parallel
 from scripts._bench_utils import MetricsTracker, get_standard_parser, save_experiment_config
 

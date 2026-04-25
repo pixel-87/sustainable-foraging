@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 
 import gymnasium as gym
 import numpy as np
-from lbforaging.foraging.environment import Action
+from sustainable_foraging.foraging.environment import Action
 
 
 def parse_args():

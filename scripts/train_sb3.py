@@ -17,8 +17,8 @@ from pathlib import Path
 
 import numpy as np
 import supersuit as ss
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import (
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
     BENCHMARK_SEEDS,
     get_preset,

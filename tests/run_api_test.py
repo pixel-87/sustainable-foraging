@@ -1,5 +1,5 @@
 import sys
-from lbforaging.foraging.aecEnvironment import ForagingEnv
+from sustainable_foraging.foraging.aecEnvironment import ForagingEnv
 from pettingzoo.test import api_test
 
 def main():

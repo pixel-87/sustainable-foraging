@@ -18,8 +18,8 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.tune.registry import register_env
 
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import get_preset
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import get_preset
 from scripts._bench_utils import MetricsTracker, get_standard_parser, save_experiment_config
 
 # ---------------------------------------------------------------------------

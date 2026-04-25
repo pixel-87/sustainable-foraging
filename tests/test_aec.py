@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from lbforaging.foraging.aecEnvironment import Action, ForagingEnv
+from sustainable_foraging.foraging.aecEnvironment import Action, ForagingEnv
 from pettingzoo.test import api_test
 
 

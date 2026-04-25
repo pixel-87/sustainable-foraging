@@ -15,7 +15,7 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Any
 
-from lbforaging.foraging.sustainable_benchmark import (
+from sustainable_foraging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
     BENCHMARK_SEEDS,
     get_preset,

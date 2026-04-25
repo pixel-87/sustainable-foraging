@@ -15,8 +15,8 @@ import numpy as np
 import imageio
 import supersuit as ss
 from stable_baselines3 import PPO
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import (
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import (
     BENCHMARK_NAME,
     get_preset,
     list_presets,

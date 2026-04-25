@@ -4,9 +4,9 @@ from itertools import product, repeat
 import numpy as np
 import pandas as pd
 
-from lbforaging.agents import H1, BaseAgent
-from lbforaging.foraging.environment import Action
-from lbforaging.foraging.environment import ForagingEnv as Env
+from sustainable_foraging.agents import H1, BaseAgent
+from sustainable_foraging.foraging.environment import Action
+from sustainable_foraging.foraging.environment import ForagingEnv as Env
 
 _CACHE = None
 

@@ -3,9 +3,9 @@ import logging
 import time
 
 import gymnasium as gym
-import lbforaging  # noqa
+import sustainable_foraging  # noqa
 import numpy as np
-from lbforaging.foraging import AECForagingEnv
+from sustainable_foraging.foraging import AECForagingEnv
 
 logger = logging.getLogger(__name__)
 

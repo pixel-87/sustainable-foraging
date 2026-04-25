@@ -14,8 +14,8 @@ import supersuit as ss
 import torch
 import torch.nn as nn
 
-from lbforaging.foraging import AECForagingEnv
-from lbforaging.foraging.sustainable_benchmark import get_preset, list_presets
+from sustainable_foraging.foraging import AECForagingEnv
+from sustainable_foraging.foraging.sustainable_benchmark import get_preset, list_presets
 from pettingzoo.utils import aec_to_parallel
 
 # ---------------------------------------------------------------------------
