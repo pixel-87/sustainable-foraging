@@ -212,4 +212,10 @@ def get_standard_parser(
         default=defaults["batch_size"],
         help=f"Batch size (default: {defaults['batch_size']})",
     )
+    parser.add_argument(
+        "--num-cpus",
+        type=int,
+        default=0,
+        help="Number of CPUs for vectorized environments (0=sequential) (default: 0)",
+    )
     return parser
