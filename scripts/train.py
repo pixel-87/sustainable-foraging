@@ -68,19 +68,19 @@ def main() -> None:
     if args.library == "sb3":
         if args.algorithm not in ["ppo", "a2c"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by sb3 runner (supported: ppo, a2c).")
-        from scripts.lib.runners.run_sb3 import run_sb3
+        from scripts.core.runners.run_sb3 import run_sb3
         run_sb3(args, algorithm=args.algorithm)
         
     elif args.library == "cleanrl":
         if args.algorithm not in ["mappo", "dqn", "vdn"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by cleanrl runner (supported: mappo, dqn, vdn, qmix).")
-        from scripts.lib.runners.run_cleanrl import run_cleanrl
+        from scripts.core.runners.run_cleanrl import run_cleanrl
         run_cleanrl(args, algorithm=args.algorithm)
         
     elif args.library == "rllib":
         if args.algorithm != "ppo":
             raise ValueError(f"Algorithm {args.algorithm} not supported by rllib runner (supported: ppo).")
-        from scripts.lib.runners.run_rllib import run_rllib
+        from scripts.core.runners.run_rllib import run_rllib
         run_rllib(args)
         
     else:
