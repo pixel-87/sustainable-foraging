@@ -47,7 +47,7 @@
 
     pythonSets = forAllSystems ({ system, pkgs }:
       let
-        python = pkgs.python3;
+        python = pkgs.python312;
       in 
       (pkgs.callPackage pyproject-nix.build.packages { inherit python;}).overrideScope
         (lib.composeManyExtensions [ 

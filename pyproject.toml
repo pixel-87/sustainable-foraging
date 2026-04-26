@@ -42,7 +42,7 @@ train = [
 ]
 rllib = [
     "ray[rllib]>=2.9",
-    "torch>=2.8.0",
+    "torch>=2.5.0",
 ]
 
 [project.urls]
@@ -108,11 +108,22 @@ dev = [
     "matplotlib>=3.5.3",
     "setuptools>=68.0.0",
     "stable-baselines3>=2.0.0",
-    "supersuit>=3.8.1",
+    "supersuit>=3.10.0",
     "tensorboard>=2.11.2",
-    "torch>=1.13.1",
+    "torch>=2.5.0",
 ]
 rllib = [
     "ray[rllib]>=2.9",
-    "torch>=1.13.1",
+    "torch>=2.5.0",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm6.1"
+explicit = false
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
+"pytorch-triton-rocm" = { index = "pytorch-rocm" }

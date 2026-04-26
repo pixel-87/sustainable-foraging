@@ -14,6 +14,7 @@
   # graphics 
   xvfb-run,
   zlib,
+  zstd,
   libGL,
   libGLU,
   xorg,
@@ -44,7 +45,8 @@ mkShell {
   shellHook = ''
     unset PYTHONPATH
     export REPO_ROOT=$(git rev-parse --show-toplevel)
-    export LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib:${zlib}/lib:${libGL}/lib:${libGLU}/lib:${xorg.libX11}/lib:${xorg.libXcursor}/lib:${xorg.libXi}/lib:${xorg.libXinerama}/lib:${freetype}/lib:${fontconfig.lib}/lib:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib:${zlib}/lib:${zstd.out}/lib:${libGL}/lib:${libGLU}/lib:${xorg.libX11}/lib:${xorg.libXcursor}/lib:${xorg.libXi}/lib:${xorg.libXinerama}/lib:${freetype}/lib:${fontconfig.lib}/lib:$LD_LIBRARY_PATH
+    export HSA_OVERRIDE_GFX_VERSION=10.3.0
   '';
 
 }
