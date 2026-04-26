@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["ppo", "a2c", "dqn", "mappo", "sac", "vdn"],
+        choices=["ppo", "a2c", "dqn", "mappo", "sac", "vdn", "qmix"],
         required=True,
         help="Which RL algorithm to use",
     )
@@ -72,7 +72,7 @@ def main() -> None:
         run_sb3(args, algorithm=args.algorithm)
         
     elif args.library == "cleanrl":
-        if args.algorithm not in ["mappo", "dqn", "vdn"]:
+        if args.algorithm not in ["mappo", "dqn", "vdn", "qmix"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by cleanrl runner (supported: mappo, dqn, vdn, qmix).")
         from scripts.core.runners.run_cleanrl import run_cleanrl
         run_cleanrl(args, algorithm=args.algorithm)
