@@ -88,6 +88,7 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
             learning_rate=args.lr,
             batch_size=args.batch_size,
             gamma=args.gamma,
+            ent_coef=getattr(args, "ent_coef", 0.0),
             tensorboard_log=str(tb_dir),
         )
     elif algo_name == "A2C":
@@ -97,6 +98,7 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
             verbose=1,
             learning_rate=args.lr,
             gamma=args.gamma,
+            ent_coef=getattr(args, "ent_coef", 0.0),
             tensorboard_log=str(tb_dir),
         )
     else:
