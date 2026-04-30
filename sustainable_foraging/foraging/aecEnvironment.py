@@ -90,11 +90,11 @@ class ForagingEnv(AECEnv):
 
     def __init__(
         self,
-        players,
-        field_size,
-        max_num_food,
-        sight,
-        max_episode_steps,
+        players=2,
+        field_size=(8, 8),
+        max_num_food=None,
+        sight=None,
+        max_episode_steps=500,
         max_energy=50,
         food_energy_value=10,
         energy_depletion_rate=1,
@@ -109,7 +109,14 @@ class ForagingEnv(AECEnv):
         self.logger = logging.getLogger(__name__)
         self.render_mode = render_mode
         self.viewer = None
-        self.players = [Player() for _ in range(players)]
+
+        if isinstance(players, int):
+            self.players = [Player() for _ in range(players)]
+        else:
+            self.players = players
+
+        if field_size is None:
+            field_size = (8, 8)
 
         self.field = np.zeros(field_size, np.int32)
 
@@ -122,11 +129,22 @@ class ForagingEnv(AECEnv):
         self.num_food_zones = num_food_zones
         self.food_zones = []
 
-        self.max_num_food = max_num_food  # K: carrying capacity
+        # Heuristic Scaling: Maintain sustainability equilibrium (Knife-Edge)
+        if max_num_food is None:
+            # Maintain a 2:1 food-to-player ratio as per dissertation benchmarks
+            self.max_num_food = len(self.players) * 2
+        else:
+            self.max_num_food = max_num_food
+
         self._food_spawned = 0.0
         self._food_level = 0.0  # continuous food level for logistic growth
 
-        self.sight = sight
+        if sight is None:
+            # Default to full observability for the given grid size
+            self.sight = max(field_size)
+        else:
+            self.sight = sight
+
         self._game_over = None
 
         self._rendering_initialized = False
