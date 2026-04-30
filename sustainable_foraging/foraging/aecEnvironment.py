@@ -98,7 +98,7 @@ class ForagingEnv(AECEnv):
         max_energy=50,
         food_energy_value=10,
         energy_depletion_rate=1,
-        food_regeneration_rate=1.5,  # a: logistic replenishment rate (must be > 1)
+        food_regeneration_rate=None,  # a: logistic replenishment rate (None = auto-scale to Knife-Edge)
         num_food_zones=2,
         normalize_reward=True,
         grid_observation=False,
@@ -125,16 +125,31 @@ class ForagingEnv(AECEnv):
         self.max_energy = max_energy
         self.food_energy_value = food_energy_value
         self.energy_depletion_rate = energy_depletion_rate
-        self.food_regeneration_rate = food_regeneration_rate
         self.num_food_zones = num_food_zones
         self.food_zones = []
 
-        # Heuristic Scaling: Maintain sustainability equilibrium (Knife-Edge)
+        # Heuristic Scaling: Maintain carrying capacity (K) relative to player count
         if max_num_food is None:
             # Maintain a 2:1 food-to-player ratio as per dissertation benchmarks
             self.max_num_food = len(self.players) * 2
         else:
             self.max_num_food = max_num_food
+
+        # Heuristic Scaling: Maintain sustainability equilibrium (Knife-Edge)
+        # This ensures 'a' scales mathematically so collapse is always possible but avoidable.
+        if food_regeneration_rate is None:
+            # Formula: a_critical = 1 + (4 * N * d * c) / (K * E)
+            # where c=1.5 is the realistic cost multiplier from benchmarks
+            N = len(self.players)
+            d = self.energy_depletion_rate
+            E = self.food_energy_value
+            K = self.max_num_food
+            c = 1.5
+            
+            f_min = (N * d * c) / E
+            self.food_regeneration_rate = round(1.0 + (4.0 * f_min) / K, 4)
+        else:
+            self.food_regeneration_rate = food_regeneration_rate
 
         self._food_spawned = 0.0
         self._food_level = 0.0  # continuous food level for logistic growth
