@@ -49,7 +49,8 @@ class ForagingMetricsWrapper(BaseWrapper):
             
             # AEC environment updates these accumulators during the cycle.
             # We only want to add the final values at the end of the cycle (when agent is the last one).
-            if getattr(self, "_agent_selector", None) and self._agent_selector.is_last():
+            agent_selector = getattr(self.unwrapped, "_agent_selector", None)
+            if agent_selector and agent_selector.is_last():
                 self._ep_length += 1
                 self._foods += info.get("foods_collected", 0)
                 self._coop += info.get("cooperative_collections", 0)

@@ -4,9 +4,26 @@
 import argparse
 import sys
 from typing import Any
+import time
+from functools import wraps
 
 from sustainable_foraging.foraging.sustainable_benchmark import BENCHMARK_NAME, get_training_defaults, list_presets
 from scripts._bench_utils import get_standard_parser
+
+
+def time_dec(func):
+    @wraps(func)  
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()  # More precise than time.time()
+        
+        result = func(*args, **kwargs)   
+        
+        end_time = time.perf_counter()
+        duration = end_time - start_time
+        
+        print(f"Executed {func.__name__} in {duration:.4f} seconds")
+        return result
+    return wrapper
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,7 +74,7 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-
+@time_dec
 def main() -> None:
     args = parse_args()
     

@@ -1,420 +1,250 @@
 #!/usr/bin/env python3
-"""Compare models (Library/Algorithm) on a single dashboard.
-
-Each run appears as its own entry, labeled by its library and algorithm
-(e.g. SB3/PPO, RLlib/DQN, CleanRL/PPO).
-
-Usage:
-    # Compare all runs in logs/
-    uv run python -m scripts.compare_algorithms
-
-    # Filter by preset
-    uv run python -m scripts.compare_algorithms --preset fair
-
-    # Compare specific runs
-    uv run python -m scripts.compare_algorithms logs/run_a logs/run_b
-
-    # Top N only
-    uv run python -m scripts.compare_algorithms --top 5
-"""
-
-from __future__ import annotations
-
 import argparse
 import csv
 import json
 import sys
 from pathlib import Path
-from typing import Any
-
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
+from collections import defaultdict
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
-# ── Theme ────────────────────────────────────────────────────────────────────
-
-PALETTE = [
-    "#C34A36",
-    "#2D8F85",
-    "#845EC2",
-    "#D4A017",
-    "#3D5A80",
-    "#9C6644",
-    "#00876C",
-    "#B56576",
-    "#264653",
-    "#6A4C93",
-]
-
-BG_FIG = "#f6f3ed"
-BG_AXES = "#fffdf8"
-GRID_CLR = "#d8d2c5"
-TEXT_CLR = "#352b1e"
-MUTED = "#7e7060"
-
-plt.rcParams.update(
-    {
-        "figure.facecolor": BG_FIG,
-        "axes.facecolor": BG_AXES,
-        "axes.edgecolor": GRID_CLR,
-        "axes.labelcolor": TEXT_CLR,
-        "axes.titleweight": "bold",
-        "axes.titlesize": 13,
-        "grid.color": GRID_CLR,
-        "grid.alpha": 0.5,
-        "xtick.color": MUTED,
-        "ytick.color": MUTED,
-        "text.color": TEXT_CLR,
-        "font.family": "DejaVu Sans",
-        "font.size": 9,
-        "legend.facecolor": "#fff8ec",
-        "legend.edgecolor": GRID_CLR,
-    }
-)
-
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def smooth(v: np.ndarray, window: int = 25) -> np.ndarray:
-    if len(v) <= 2:
-        return v.astype(float)
-    w = max(3, min(window, len(v)))
-    w += 1 - w % 2  # ensure odd
-    # Pad at data edges to prevent np.convolve from padding with zeros.
-    # We use "reflect" instead of "edge" so that if the very last episode is
-    # an outlier (e.g. 0.0), we don't duplicate it 250 times and tank the graph!
-    pad_w = w // 2
-    padded_v = np.pad(v, (pad_w, pad_w), mode="reflect")
-    return np.convolve(padded_v, np.ones(w) / w, mode="valid")
-
-
-def rolling_std(v: np.ndarray, window: int = 25) -> np.ndarray:
-    mu = smooth(v, window)
-    return np.sqrt(np.maximum(0.0, smooth(v**2, window) - mu**2))
-
-
-def _label(config: dict[str, Any], run_dir: Path) -> str:
-    lib = config.get("library", "")
-    algo = config.get("algorithm", "")
-    if lib and algo:
-        return f"{lib}/{algo}"
-    if algo:
-        return algo
-    return run_dir.name
-
-
-def load_run(run_dir: Path, max_steps: int = 0) -> dict[str, Any] | None:
+def load_run(run_dir: Path):
     csv_path = run_dir / "metrics.csv"
     cfg_path = run_dir / "config.json"
-    if not csv_path.exists():
-        return None
+    if not csv_path.exists(): return None
 
-    config: dict[str, Any] = {}
+    config = {}
     if cfg_path.exists():
         with open(cfg_path) as f:
             config = json.load(f)
 
-    rows: list[dict[str, str]] = []
+    ts, rew, food, leng, rem = [], [], [], [], []
     with open(csv_path) as f:
         for row in csv.DictReader(f):
-            ts = int(row.get("timestep", 0) or 0)
-            if max_steps > 0 and ts > max_steps:
-                continue
-            rows.append(row)
-    if not rows:
-        return None
+            ts.append(int(row.get("timestep", 0) or 0))
+            rew.append(float(row.get("reward_total", 0) or 0))
+            food.append(float(row.get("foods_collected", 0) or 0))
+            leng.append(int(row.get("length", 0) or 0))
+            rem.append(float(row.get("food_remaining_end", 0) or 0))
 
-    def col_f(k: str) -> np.ndarray:
-        return np.array([float(r.get(k, 0) or 0) for r in rows])
+    if not ts: return None
 
-    def col_i(k: str) -> np.ndarray:
-        return np.array([int(r.get(k, 0) or 0) for r in rows])
+    ts = np.array(ts)
+    rew = np.array(rew)
+    food = np.array(food)
+    leng = np.array(leng, dtype=float)
+    rem = np.array(rem)
 
-    ts = col_i("timestep")
-    rew = col_f("reward_total")
-    food = col_i("foods_collected")
-    leng = col_i("length")
-    rem = col_i("food_remaining_end")
+    # Label logic
+    lib = config.get("library", "")
+    algo = config.get("algorithm", "")
+    if lib and algo:
+        label = f"{lib.upper()}/{algo.upper()}"
+    elif algo:
+        label = algo.upper()
+    else:
+        label = run_dir.name.split("_")[0].upper()
 
-    sl = np.maximum(leng, 1)
-    n = len(ts)
-    q3 = max(0, 3 * n // 4)
+    if np.mean(leng) < 1.0 and len(ts) > 100:
+        w = 100
+        approx_leng = np.zeros_like(leng)
+        diff = ts[w:] - ts[:-w]
+        
+        # CleanRL QMIX/VDN advance global_step by 1 per env step and log 1 metric per parallel env
+        if "QMIX" in label or "VDN" in label:
+            # diff = 12.5 * L -> L = diff / 12.5 -> diff / 100 * 8
+            approx_leng[w:] = (diff / w) * 8
+        # CleanRL DQN advances global_step by 1 per env step and logs 2 metrics per parallel env
+        elif "DQN" in label:
+            # diff = 6.25 * L -> L = diff / 6.25 -> diff / 100 * 16
+            approx_leng[w:] = (diff / w) * 16
+        # SB3 and CleanRL MAPPO/PPO advance global_step by 16 per env step and log 2 metrics per parallel env
+        else:
+            # diff = 6.25 * 16 * L = 100 * L -> L = diff / 100
+            approx_leng[w:] = diff / w
+            
+        approx_leng[:w] = approx_leng[w]
+        leng = approx_leng
+
+    eff = leng / np.maximum(food, 1.0)
 
     return {
         "run_dir": run_dir,
-        "config": config,
-        "label": _label(config, run_dir),
-        "preset": config.get("preset", "?"),
+        "label": label,
         "ts": ts,
         "reward": rew,
-        "foods": food.astype(float),
-        "remaining": rem.astype(float),
-        "efficiency": sl / np.maximum(food.astype(float), 1.0),
-        # Scalars (last 25 %)
-        "reward_lq": float(np.mean(rew[q3:])),
-        "reward_lq_sd": float(np.std(rew[q3:])),
-        "foods_lq": float(np.mean(food[q3:])),
-        "eff_lq": float(np.mean(sl[q3:] / np.maximum(food[q3:].astype(float), 1.0))),
-        "rem_lq": float(np.mean(rem[q3:])),
-        "len_lq": float(np.mean(sl[q3:])),
+        "length": leng,
+        "sustainability": rem,
+        "restraint": eff
     }
 
-
-# ── Plot ─────────────────────────────────────────────────────────────────────
-
-
-def plot(runs: list[dict[str, Any]], out: Path, window: int, show: bool, lines_only: bool = False) -> None:
-    runs.sort(key=lambda r: r["reward_lq"], reverse=True)
-    N = len(runs)
-    clr = [PALETTE[i % len(PALETTE)] for i in range(N)]
-
-    fig = plt.figure(figsize=(20, 14))
-    gs = gridspec.GridSpec(3, 3, hspace=0.35, wspace=0.3)
-
-    presets = sorted(set(r["preset"] for r in runs))
-    title = "Model Comparison"
-    if len(presets) == 1:
-        title += f"  —  {presets[0]} preset"
-    fig.suptitle(title, fontsize=16, fontweight="bold", y=0.99)
-
-    # 1 ─ Reward curves
-    ax = fig.add_subplot(gs[0, 0:2])
-    for i, r in enumerate(runs):
-        mu = smooth(r["reward"], window)
-        if not lines_only:
-            sd = rolling_std(r["reward"], window)
-            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
-        ax.plot(r["ts"], mu, color=clr[i], lw=2.2, label=r["label"])
-    ax.set_title("Episode Reward")
-    ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Reward")
-    ax.grid(True)
-    ax.legend(fontsize=8, loc="best", ncol=max(1, N // 5))
-
-    # 2 ─ Ranking bar
-    ax = fig.add_subplot(gs[0, 2])
-    labels = [r["label"] for r in runs]
-    scores = [r["reward_lq"] for r in runs]
-    errs = [r["reward_lq_sd"] for r in runs]
-    y = np.arange(N)
-    bars = ax.barh(y, scores, xerr=errs, color=clr, alpha=0.9, height=0.6)
-    ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=10, fontweight="bold")
-    ax.invert_yaxis()
-    ax.set_title("Final Reward (last 25%)")
-    ax.set_xlabel("Mean ± std")
-    ax.grid(True, axis="x")
-    for b, s in zip(bars, scores):
-        ax.text(
-            b.get_width() + max(scores) * 0.02,
-            b.get_y() + b.get_height() / 2,
-            f"{s:.2f}",
-            va="center",
-            fontsize=9,
-            color=TEXT_CLR,
-        )
-
-    # 3 ─ Efficiency
-    ax = fig.add_subplot(gs[1, 0])
-    for i, r in enumerate(runs):
-        mu = smooth(r["efficiency"], window)
-        if not lines_only:
-            sd = rolling_std(r["efficiency"], window)
-            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
-        ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
-    ax.set_title("Restraint (Timesteps per Food)")
-    ax.set_xlabel("Training Timesteps (Scale)")
-    ax.set_ylabel("Env Timesteps / Food")
-    ax.grid(True)
-    ax.legend(fontsize=7)
-
-    # 4 ─ Foods collected
-    ax = fig.add_subplot(gs[1, 1])
-    for i, r in enumerate(runs):
-        mu = smooth(r["foods"], window)
-        if not lines_only:
-            sd = rolling_std(r["foods"], window)
-            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
-        ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
-    ax.set_title("Foods Collected")
-    ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Count")
-    ax.grid(True)
-    ax.legend(fontsize=7)
-
-    # 5 ─ Food remaining (sustainability)
-    ax = fig.add_subplot(gs[1, 2])
-    for i, r in enumerate(runs):
-        mu = smooth(r["remaining"], window)
-        if not lines_only:
-            sd = rolling_std(r["remaining"], window)
-            ax.fill_between(r["ts"], mu - sd, mu + sd, color=clr[i], alpha=0.10)
-        ax.plot(r["ts"], mu, color=clr[i], lw=2, label=r["label"])
-    env_cfg = runs[0]["config"].get("environment", {})
-    K = env_cfg.get("max_num_food")
-    if isinstance(K, (int, float)):
-        ax.axhline(K, ls="--", color=MUTED, alpha=0.6, label=f"K={K}")
-    ax.axhline(0, ls=":", color="#c34a36", alpha=0.5, label="Collapse")
-    ax.set_title("Food Remaining (Sustainability)")
-    ax.set_xlabel("Timesteps")
-    ax.set_ylabel("Food at episode end")
-    ax.grid(True)
-    ax.legend(fontsize=7)
-
-    # 6 ─ Scoreboard
-    ax = fig.add_subplot(gs[2, :])
-    ax.axis("off")
-    hdrs = ["Model", "Preset", "Reward ↓", "Foods", "Timesteps/Food", "Food Left", "Survival"]
-    rows_t = []
-    row_clr = []
-    for i, r in enumerate(runs):
-        rows_t.append(
-            [
-                r["label"],
-                r["preset"],
-                f"{r['reward_lq']:.2f} ± {r['reward_lq_sd']:.2f}",
-                f"{r['foods_lq']:.1f}",
-                f"{r['eff_lq']:.1f}",
-                f"{r['rem_lq']:.1f}",
-                f"{r['len_lq']:.1f}",
-            ]
-        )
-        row_clr.append([clr[i] + "18"] * len(hdrs))
-
-    tbl = ax.table(
-        cellText=rows_t,
-        colLabels=hdrs,
-        cellColours=row_clr,
-        colColours=["#f0e7d9"] * len(hdrs),
-        loc="center",
-        cellLoc="center",
-    )
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(10)
-    tbl.scale(1, 1.8)
-    for k, c in tbl.get_celld().items():
-        if k[0] == 0:
-            c.set_text_props(fontweight="bold")
-    ax.set_title("Leaderboard", fontsize=13, fontweight="bold", pad=20)
-
-    # Save
-    png = out / "algorithm_comparison.png"
-    fig.savefig(png, dpi=220, bbox_inches="tight")
-    print(f"Saved: {png}")
-
-    # Console
-    print()
-    W = 94
-    print("=" * W)
-    print("  MODEL COMPARISON")
-    print("=" * W)
-    print(
-        f"  {'#':>2}  {'Model':<18} {'Preset':<8} {'Reward':>14}  {'Foods':>6}  "
-        f"{'Stp/Fd':>8}  {'Food Left':>9}  {'Survival':>8}"
-    )
-    print("-" * W)
-    for i, r in enumerate(runs):
-        print(
-            f"  {i + 1:>2}  {r['label']:<18} {r['preset']:<8} "
-            f"{r['reward_lq']:>7.2f}±{r['reward_lq_sd']:<5.2f}  "
-            f"{r['foods_lq']:>6.1f}  {r['eff_lq']:>8.1f}  "
-            f"{r['rem_lq']:>9.1f}  {r['len_lq']:>8.1f}"
-        )
-    print("=" * W)
-
-    # CSV
-    csv_out = out / "algorithm_comparison.csv"
-    with open(csv_out, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(
-            [
-                "rank",
-                "model",
-                "preset",
-                "reward_mean",
-                "reward_std",
-                "foods",
-                "efficiency",
-                "food_remaining",
-                "survival_steps",
-                "run_dir",
-            ]
-        )
-        for i, r in enumerate(runs):
-            w.writerow(
-                [
-                    i + 1,
-                    r["label"],
-                    r["preset"],
-                    f"{r['reward_lq']:.4f}",
-                    f"{r['reward_lq_sd']:.4f}",
-                    f"{r['foods_lq']:.2f}",
-                    f"{r['eff_lq']:.1f}",
-                    f"{r['rem_lq']:.2f}",
-                    f"{r['len_lq']:.1f}",
-                    r["run_dir"],
-                ]
-            )
-    print(f"Saved: {csv_out}")
-
-    if show:
-        plt.show()
-    else:
-        plt.close(fig)
-
-
-# ── CLI ──────────────────────────────────────────────────────────────────────
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser(description="Compare models on a single dashboard")
-    ap.add_argument(
-        "run_dirs", nargs="*", default=[], help="Specific run dirs (default: all in logs/)"
-    )
-    ap.add_argument("--preset", type=str, default=None, help="Filter by preset")
-    ap.add_argument("--top", type=int, default=0, help="Top N models (0=all)")
-    ap.add_argument("--window", type=int, default=25, help="Smoothing window")
-    ap.add_argument("--max-steps", type=int, default=0, help="Clip all graphs to this maximum timestep (e.g. 200000)")
-    ap.add_argument("--no-show", action="store_true")
-    ap.add_argument("--lines-only", action="store_true", help="Plot only solid lines, no std dev bands")
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run_dirs", nargs="*", default=[])
     args = ap.parse_args()
 
-    if args.run_dirs:
-        dirs = [Path(d) for d in args.run_dirs]
-    else:
-        dirs = sorted(d for d in Path("logs").glob("run_*") if (d / "metrics.csv").exists())
-
+    dirs = [Path(d) for d in args.run_dirs]
     if not dirs:
-        print("No runs found. Train first:\n  uv run python -m scripts.train_sb3 --preset fair")
-        sys.exit(1)
+        dirs = sorted(d for d in Path("logs").glob("*_final_seed*") if (d / "metrics.csv").exists())
 
-    runs = [r for d in dirs if (r := load_run(d, args.max_steps)) is not None]
+    runs = [r for d in dirs if (r := load_run(d)) is not None]
     if not runs:
-        print("No valid run data.")
+        print("No valid run data found.")
         sys.exit(1)
 
-    if args.preset:
-        runs = [r for r in runs if r["preset"] == args.preset]
-        if not runs:
-            print(f"No runs with preset '{args.preset}'")
-            sys.exit(1)
+    # Group by label
+    groups = defaultdict(list)
+    for r in runs:
+        groups[r["label"]].append(r)
 
-    runs.sort(key=lambda r: r["reward_lq"], reverse=True)
-    if args.top > 0:
-        runs = runs[: args.top]
+    max_global_ts = max(max(r["ts"]) for r in runs)
+    
+    # Prepare plots
+    plt.style.use('seaborn-v0_8-whitegrid')
+    colors = plt.get_cmap("tab10").colors
 
-    print(f"Comparing {len(runs)} model(s)...")
+    fig_all, axes = plt.subplots(1, 3, figsize=(20, 7))
+    fig_len, ax_len = plt.subplots(figsize=(10, 6))
+    fig_sus, ax_sus = plt.subplots(figsize=(10, 6))
+    fig_rew, ax_rew = plt.subplots(figsize=(10, 6))
+
+    metric_specs = [
+        ("length", "Episode Length", "Steps", axes[0], ax_len),
+        ("sustainability", "Sustainability", "Food Remaining", axes[1], ax_sus),
+        ("reward", "Episodic Reward", "Reward Total", axes[2], ax_rew)
+    ]
+
+    def format_axes(ax, title, ylabel):
+        ax.set_title(title, fontweight="bold", fontsize=14)
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.set_xlabel("Timesteps", fontsize=12)
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x/1e6:g}M"))
+        ax.grid(True, alpha=0.3)
+
+    for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
+        format_axes(ax_sub, m_title, m_ylabel)
+        format_axes(ax_ind, m_title, m_ylabel)
+
+    # To store final stats for leaderboard
+    leaderboard_data = []
+
+    # Sort groups alphabetically for consistent colors
+    markers = ['o', 's', '^', 'D', 'v', 'p', 'X', '*', '+']
+    for idx, (label, group_runs) in enumerate(sorted(groups.items())):
+        color = colors[idx % len(colors)]
+        marker = markers[idx % len(markers)]
+        
+        # Find max ts for this specific algorithm
+        algo_max_ts = max(max(r["ts"]) for r in group_runs)
+        
+        # Interpolate onto shared evenly spaced x-axis for this algorithm's duration
+        algo_x = np.linspace(0, algo_max_ts, 1000)
+        
+        final_stats = {"label": label}
+
+        for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
+            interp_lines = []
+            for r in group_runs:
+                interp_y = np.interp(algo_x, r["ts"], r[m_key])
+                interp_lines.append(interp_y)
+            
+            mean_y = np.mean(interp_lines, axis=0)
+            std_y = np.std(interp_lines, axis=0)
+            
+            # Use Standard Error of the Mean (SEM) to make bands tighter
+            n_runs = len(group_runs)
+            err_y = std_y / np.sqrt(n_runs) if n_runs > 0 else np.zeros_like(std_y)
+            
+            # Smooth the mean and std slightly for visual clarity (window=25 out of 1000)
+            def smooth(v, w=25):
+                pad = w//2
+                pv = np.pad(v, (pad, pad), mode='edge')
+                # np.convolve extends length by w-1, so we slice to match original length
+                res = np.convolve(pv, np.ones(w)/w, mode='valid')
+                # handle off-by-one caused by even/odd padding lengths
+                if len(res) > len(v): res = res[:len(v)]
+                elif len(res) < len(v): res = np.pad(res, (0, len(v)-len(res)), mode='edge')
+                return res
+            
+            mean_smooth = smooth(mean_y)
+            err_smooth = smooth(err_y)
+
+            # Bin the data into 50 discrete points to average out spikes
+            n_bins = 50
+            algo_x_binned = algo_x.reshape(n_bins, -1).mean(axis=1)
+            mean_binned = mean_smooth.reshape(n_bins, -1).mean(axis=1)
+            err_binned = err_smooth.reshape(n_bins, -1).mean(axis=1)
+
+            # Plot on both sub and ind
+            for ax in [ax_sub, ax_ind]:
+                ax.plot(algo_x_binned, mean_binned, color=color, label=label, lw=1.5, marker=marker, markersize=4)
+                fill_alpha = 0.15 if ax == ax_sub else 0.25
+                ax.fill_between(algo_x_binned, mean_binned - err_binned, mean_binned + err_binned, color=color, alpha=fill_alpha)
+                
+                # Extension dashed line
+                if algo_max_ts < max_global_ts:
+                    ax.plot([algo_max_ts, max_global_ts], [mean_binned[-1], mean_binned[-1]], color=color, ls="--", lw=1.5, alpha=0.6)
+
+            final_stats[m_key] = (mean_binned[-1], err_binned[-1])
+
+        leaderboard_data.append(final_stats)
+
+    # Add legends and layout
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig_all.legend(handles, labels, loc='lower center', ncol=len(groups), bbox_to_anchor=(0.5, 0.02))
+    
+    for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
+        ax_ind.legend(loc='best')
+        
+    fig_all.tight_layout(rect=[0, 0.08, 1, 1])
+    fig_len.tight_layout()
+    fig_sus.tight_layout()
+    fig_rew.tight_layout()
 
     out = Path("logs")
-    out.mkdir(exist_ok=True)
-    backend = plt.get_backend().lower()
-    show = not args.no_show and not any(t in backend for t in ("agg", "pdf", "svg", "cairo"))
-    if not show and not args.no_show:
-        print("Non-interactive backend; saving to file only.")
+    fig_all.savefig(out / "comparison_all.png", dpi=200)
+    fig_len.savefig(out / "comparison_length.png", dpi=200)
+    fig_sus.savefig(out / "comparison_sustainability.png", dpi=200)
+    fig_rew.savefig(out / "comparison_reward.png", dpi=200)
+    
+    # Leaderboard
+    leaderboard_data.sort(key=lambda x: x["length"][0], reverse=True)
+    
+    print("\n### Final Algorithm Benchmark Leaderboard\n")
+    print("| Algorithm | Episode Length (Mean ± SEM) | Sustainability (Mean ± SEM) | Episodic Reward (Mean ± SEM) |")
+    print("| :--- | :--- | :--- | :--- |")
+    for row in leaderboard_data:
+        len_m, len_s = row["length"]
+        sus_m, sus_s = row["sustainability"]
+        rew_m, rew_s = row["reward"]
+        print(f"| **{row['label']}** | {len_m:.2f} ± {len_s:.2f} | {sus_m:.2f} ± {sus_s:.2f} | {rew_m:.2f} ± {rew_s:.2f} |")
+    print("\nSaved graphs to logs/comparison_all.png, logs/comparison_length.png, logs/comparison_sustainability.png, logs/comparison_reward.png\n")
 
-    plot(runs, out, window=args.window, show=show, lines_only=args.lines_only)
+    # Export to CSV and LaTeX for dissertation
+    with open(out / "dissertation_table.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Algorithm", "Episode Length (Mean)", "Episode Length (SEM)", "Sustainability (Mean)", "Sustainability (SEM)", "Episodic Reward (Mean)", "Episodic Reward (SEM)"])
+        for row in leaderboard_data:
+            writer.writerow([row['label'], f"{row['length'][0]:.2f}", f"{row['length'][1]:.2f}", f"{row['sustainability'][0]:.2f}", f"{row['sustainability'][1]:.2f}", f"{row['reward'][0]:.2f}", f"{row['reward'][1]:.2f}"])
 
+    with open(out / "dissertation_table.typ", "w") as f:
+        f.write("#figure(\n")
+        f.write("  table(\n")
+        f.write("    columns: 4,\n")
+        f.write("    align: (left, center, center, center),\n")
+        f.write("    [*Algorithm*], [*Episode Length*], [*Sustainability*], [*Episodic Reward*],\n")
+        for row in leaderboard_data:
+            label = row['label'].replace('_', '\\_')
+            len_str = f"{row['length'][0]:.2f} \\pm {row['length'][1]:.2f}"
+            sus_str = f"{row['sustainability'][0]:.2f} \\pm {row['sustainability'][1]:.2f}"
+            rew_str = f"{row['reward'][0]:.2f} \\pm {row['reward'][1]:.2f}"
+            f.write(f"    [{label}], [${len_str}$], [${sus_str}$], [${rew_str}$],\n")
+        f.write("  ),\n")
+        f.write("  caption: [Final benchmark results showing Mean $\\pm$ SEM across all seeds.],\n")
+        f.write(") <tab:benchmark_results>\n")
+        
+    print(f"Saved dissertation tables to logs/dissertation_table.csv and logs/dissertation_table.typ\n")
 
 if __name__ == "__main__":
     main()

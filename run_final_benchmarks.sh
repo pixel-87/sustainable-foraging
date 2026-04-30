@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # run_final_benchmarks.sh
 # Executes the final 3-seed benchmark runs
 # Runs seeds IN PARALLEL to fully utilize the 6-core/12-thread Ryzen CPU!
 
 # AMD GPU Prefix for RX 6650 XT
 ROCM_PREFIX="HSA_OVERRIDE_GFX_VERSION=10.3.0"
-# Explicitly setting --num-envs 4 to match your CPU usage
-TRAIN_CMD="python scripts/train.py --preset fair --num-envs 4"
+# Use uv run python and set num-cpus 4 for multiprocessing
+TRAIN_CMD="uv run python scripts/train.py --preset fair --num-envs 4 --num-cpus 4"
 
 echo "========================================================="
 echo " Starting Sustainable Foraging Final Benchmarks"
@@ -41,7 +41,7 @@ run_benchmark_parallel() {
         
         # Execute the run in the background using '&'. 
         # We redirect stdout and stderr so it doesn't mess up our beautiful progress bar!
-        eval "$ROCM_PREFIX $TRAIN_CMD --library $lib --algorithm $algo --timesteps $timesteps --seed $seed --name $run_name $extra_args > $log_dir/stdout.log 2>&1" &
+        env $ROCM_PREFIX uv run python scripts/train.py --preset fair --num-envs 4 --num-cpus 4 --library $lib --algorithm $algo --timesteps $timesteps --seed $seed --name $run_name $extra_args > "$log_dir/stdout.log" 2>&1 &
         pids="$pids $!"
     done
     
@@ -52,8 +52,8 @@ run_benchmark_parallel() {
     
     # Progress Monitor Loop
     while true; do
-        # Sleep first so the environments have time to initialize and write to CSV
-        sleep 120
+        # Sleep for a short interval so we get responsive updates
+        sleep 10
         
         # Check if any of the 3 background PIDs are still running
         local any_running=false
@@ -108,7 +108,7 @@ run_benchmark_parallel() {
             last_total_steps=$current_total_steps
             last_time=$current_time
         fi
-
+        
         # If all 3 finished, break the monitor loop
         if [ "$any_running" = false ]; then
             break
@@ -120,14 +120,13 @@ run_benchmark_parallel() {
 }
 
 # ---------------------------------------------------------
-# OFF-POLICY ALGORITHMS (2 Million Timesteps - Paper Lower Bound)
-# Hyperparameters: LR=0.0003, ExpFraction=0.1 (200k steps of 2M)
+# OFF-POLICY ALGORITHMS (3 Million Timesteps - Updated)
 # ---------------------------------------------------------
-OFF_POLICY_STEPS=2000000
+OFF_POLICY_STEPS=3000000
 
-run_benchmark_parallel "cleanrl" "dqn" $OFF_POLICY_STEPS "--lr 0.0003 --exploration-fraction 0.1 --target-network-frequency 200 --tau 1.0"
-run_benchmark_parallel "cleanrl" "vdn" $OFF_POLICY_STEPS "--lr 0.0003 --exploration-fraction 0.1 --target-network-frequency 1 --tau 0.01"
-run_benchmark_parallel "cleanrl" "qmix" $OFF_POLICY_STEPS "--lr 0.0003 --exploration-fraction 0.1 --target-network-frequency 1 --tau 0.01"
+run_benchmark_parallel "cleanrl" "dqn" $OFF_POLICY_STEPS "--lr 0.0003 --exploration-fraction 0.5 --target-network-frequency 200 --tau 1.0"
+run_benchmark_parallel "cleanrl" "vdn" $OFF_POLICY_STEPS "--lr 0.0001 --exploration-fraction 0.5 --target-network-frequency 1 --tau 0.01"
+run_benchmark_parallel "cleanrl" "qmix" $OFF_POLICY_STEPS "--lr 0.0001 --exploration-fraction 0.5 --target-network-frequency 1 --tau 0.01"
 
 # ---------------------------------------------------------
 # ON-POLICY ALGORITHMS (10 Million Timesteps - Scaled Lower Bound)
@@ -135,9 +134,9 @@ run_benchmark_parallel "cleanrl" "qmix" $OFF_POLICY_STEPS "--lr 0.0003 --explora
 # ---------------------------------------------------------
 ON_POLICY_STEPS=10000000
 
-run_benchmark_parallel "sb3" "ppo" $ON_POLICY_STEPS "--lr 0.0003 --ent-coef 0.001"
-run_benchmark_parallel "cleanrl" "mappo" $ON_POLICY_STEPS "--lr 0.0003 --ent-coef 0.001"
-run_benchmark_parallel "sb3" "a2c" $ON_POLICY_STEPS "--lr 0.0005 --ent-coef 0.001"
+# run_benchmark_parallel "sb3" "ppo" $ON_POLICY_STEPS "--lr 0.0003 --ent-coef 0.001"
+# run_benchmark_parallel "cleanrl" "mappo" $ON_POLICY_STEPS "--lr 0.0003 --ent-coef 0.001"
+# run_benchmark_parallel "sb3" "a2c" $ON_POLICY_STEPS "--lr 0.0005 --ent-coef 0.001"
 
 echo ""
 echo "========================================================="

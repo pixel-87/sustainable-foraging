@@ -50,7 +50,7 @@ class MAPPOAgent(nn.Module):
         self, x: torch.Tensor, action: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         logits = self.actor(x)
-        probs = Categorical(logits=logits)
+        probs = Categorical(logits=logits, validate_args=False)
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
