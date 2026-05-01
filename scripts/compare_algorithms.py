@@ -86,7 +86,7 @@ def main():
 
     dirs = [Path(d) for d in args.run_dirs]
     if not dirs:
-        dirs = sorted(d for d in Path("logs").glob("*_final_seed*") if (d / "metrics.csv").exists())
+        dirs = sorted(d for d in Path("logs").glob("*_pomdp_seed*") if (d / "metrics.csv").exists())
 
     runs = [r for d in dirs if (r := load_run(d)) is not None]
     if not runs:
