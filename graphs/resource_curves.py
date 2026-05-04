@@ -63,7 +63,7 @@ ax1.set_title(
     "Graph 1: The Natural Regrowth Curve\n(How the environment recovers when agents do nothing)",
     fontsize=14,
 )
-ax1.set_xlim(0, 30)
+ax1.set_xlim(0, 15)
 ax1.set_ylim(0, K + 0.1)
 ax1.grid(True, alpha=0.3)
 ax1.legend(loc="lower right")

@@ -6,7 +6,6 @@ import sys
 from typing import Any
 import time
 from functools import wraps
-
 from sustainable_foraging.foraging.sustainable_benchmark import BENCHMARK_NAME, get_training_defaults, list_presets
 from scripts._bench_utils import get_standard_parser
 
@@ -78,10 +77,6 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     
-    # Validation
-    if args.algorithm == "sac":
-        raise NotImplementedError("SAC not implemented yet.")
-        
     if args.library == "sb3":
         if args.algorithm not in ["ppo", "a2c"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by sb3 runner (supported: ppo, a2c).")
