@@ -4,13 +4,13 @@ A reproducible benchmark for comparing multi-agent RL algorithms on the Sustaina
 
 Forked from [lb-foraging](https://github.com/semitable/lb-foraging), but completely overhauled to incorporate logistic resource regeneration and logarithmic reward shaping to simulate the "Tragedy of the Commons."
 
-## 🌍 The Sustainable Foraging Problem
+## The Sustainable Foraging Problem
 
 The Sustainable Foraging Problem (SFP) is a multi-agent social dilemma that models Common-Pool Resource (CPR) management. In this grid-world environment, independent agents navigate and forage for resources. Crucially, the resources (food) regenerate according to a **logistic growth function**. 
 
 If agents forage sustainably, the environment remains abundant, yielding long-term rewards for all. However, if the joint foraging rate exceeds the Maximum Sustainable Yield (the peak of the logistic regrowth parabola), the ecosystem crosses a "Point of No Return" and collapses, resulting in inevitable starvation. This creates a "Wicked Problem" where short-term individual reward maximisation is directly at odds with long-term collective survival.
 
-## 🎯 Aims and Objectives
+## Aims and Objectives
 
 The primary aim of this project is to implement and benchmark a MARL environment that accurately models the "Tragedy of the Commons." This is supported by the following measurable objectives:
 
@@ -19,7 +19,7 @@ The primary aim of this project is to implement and benchmark a MARL environment
 3. **Benchmarking Rigour**: Evaluate distinct MARL algorithms (Independent Learners, Centralised Policy Gradients, and Value-Decomposition architectures) using a standardised multi-seed evaluation protocol.
 4. **Partial Observability**: Evaluate algorithms under limited visibility (POMDP) to test the impact of thermodynamic exploration costs and global state knowledge on long-term sustainability.
 
-## 🚀 Installation & Usage
+## Installation & Usage
 
 ### Installation
 
@@ -136,7 +136,7 @@ model = PPO("MlpPolicy", env, verbose=1)
 model.learn(total_timesteps=1_000_000)
 ```
 
-## 📊 Benchmark Results
+## Benchmark Results
 
 A comprehensive benchmark was conducted across 6 MARL algorithms in a "knife-edge" equilibrium environment. 
 
@@ -155,7 +155,7 @@ A comprehensive benchmark was conducted across 6 MARL algorithms in a "knife-edg
 | SB3/PPO | 59.95 ± 1.27 | 0.82 ± 0.30 | 36.97 ± 5.20 |
 | CLEANRL/MAPPO | 58.61 ± 1.39 | 0.96 ± 0.32 | 29.05 ± 5.82 |
 
-## 📚 References
+## References
 
 If you build upon this environment or research, please consider referencing the foundational theoretical works and original frameworks:
 
@@ -171,10 +171,22 @@ If you build upon this environment or research, please consider referencing the 
 4. **PettingZoo API:**
    > J. K. Terry et al., “PettingZoo: Gym for Multi-Agent Reinforcement Learning.” arXiv, 2020.
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please open an issue to discuss changes before submitting PRs.
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📄 License
+## Contact
+
+pixel-87
+
+Project Link: [https://github.com/pixel-87/sustainable-foraging](https://github.com/pixel-87/sustainable-foraging)
+
+Original Project: [https://github.com/semitable/lb-foraging](https://github.com/semitable/lb-foraging)
+
+## License
 
 Apache License 2.0 - see [LICENSE](LICENSE) for details.
