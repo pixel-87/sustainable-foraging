@@ -11,9 +11,11 @@ from tqdm import tqdm
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def random_policy(obs, env, agent):
     """Returns a random action from the agent's action space."""
     return env.action_space(agent).sample()
+
 
 def greedy_policy(obs, env, agent):
     """
@@ -31,7 +33,7 @@ def greedy_policy(obs, env, agent):
         if len(foods_y) == 0:
             return env.action_space(agent).sample()
 
-        min_dist = float('inf')
+        min_dist = float("inf")
         closest_food = None
 
         for fy, fx in zip(foods_y, foods_x):
@@ -55,11 +57,11 @@ def greedy_policy(obs, env, agent):
         if player_y == -1 or player_x == -1:
             return env.action_space(agent).sample()
 
-        min_dist = float('inf')
+        min_dist = float("inf")
         closest_food = None
 
         for i in range(max_num_food):
-            fy, fx = obs[2*i], obs[2*i+1]
+            fy, fx = obs[2 * i], obs[2 * i + 1]
             if fy == -1 and fx == -1:
                 continue
             dist = abs(fy - player_y) + abs(fx - player_x)
@@ -87,6 +89,7 @@ def greedy_policy(obs, env, agent):
 
     return env.action_space(agent).sample()
 
+
 def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
     # Initialize the base AEC environment with the fair preset
     from core.log_utils import ForagingMetricsWrapper
@@ -98,7 +101,9 @@ def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
     base_env = AECForagingEnv(**env_config)
     env = ForagingMetricsWrapper(base_env)
 
-    logger.info(f"Evaluating {policy_name} (sight={sight}, seed={seed}) for {num_episodes} episodes...")
+    logger.info(
+        f"Evaluating {policy_name} (sight={sight}, seed={seed}) for {num_episodes} episodes..."
+    )
 
     metrics = []
 
@@ -109,12 +114,9 @@ def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
 
         while getattr(env, "agents", None):
             agent = env.agent_selection
-            obs, reward, terminated, truncated, info = env.last()
+            obs, _reward, terminated, truncated, info = env.last()
 
-            if terminated or truncated:
-                action = None
-            else:
-                action = policy_fn(obs, env, agent)
+            action = None if terminated or truncated else policy_fn(obs, env, agent)
 
             env.step(action)
 
@@ -140,6 +142,7 @@ def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
 
     return metrics
 
+
 def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5_000_000):
     """
     Writes the metrics to CSV logs compatible with compare_algorithms.py.
@@ -150,10 +153,7 @@ def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # Write config.json
-    config = {
-        "library": "Baseline",
-        "algorithm": policy_name
-    }
+    config = {"library": "Baseline", "algorithm": policy_name}
     with open(run_dir / "config.json", "w") as f:
         json.dump(config, f, indent=4)
 
@@ -169,18 +169,15 @@ def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5
 
     with open(run_dir / "metrics.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["timestep", "reward_total", "length", "foods_collected", "food_remaining_end"])
+        writer.writerow(
+            ["timestep", "reward_total", "length", "foods_collected", "food_remaining_end"]
+        )
 
         for ts in timesteps:
-            writer.writerow([
-                int(ts),
-                avg_reward,
-                avg_length,
-                avg_foods,
-                avg_sustainability
-            ])
+            writer.writerow([int(ts), avg_reward, avg_length, avg_foods, avg_sustainability])
 
     logger.info(f"Saved {policy_name} logs to {run_dir}")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -189,11 +186,16 @@ def main():
 
     for sight, obs_type in [(2, "pomdp"), (8, "fomdp")]:
         for seed in [1, 2, 3]:
-            random_metrics = evaluate(random_policy, "Random", args.episodes, sight=sight, seed=seed)
+            random_metrics = evaluate(
+                random_policy, "Random", args.episodes, sight=sight, seed=seed
+            )
             write_logs("Random", random_metrics, obs_type=obs_type, seed=seed)
 
-            greedy_metrics = evaluate(greedy_policy, "Greedy", args.episodes, sight=sight, seed=seed)
+            greedy_metrics = evaluate(
+                greedy_policy, "Greedy", args.episodes, sight=sight, seed=seed
+            )
             write_logs("Greedy", greedy_metrics, obs_type=obs_type, seed=seed)
+
 
 if __name__ == "__main__":
     main()

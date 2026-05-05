@@ -15,6 +15,7 @@ from scripts.core.env_utils import make_env
 
 class EpisodeMetricsCallback(BaseCallback):
     """Extracts episode metrics attached to info by ForagingMetricsWrapper."""
+
     def __init__(self, tracker: MetricsTracker, verbose: int = 0) -> None:
         super().__init__(verbose)
         self._tracker = tracker
@@ -47,11 +48,11 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
     csv_path = log_dir / "metrics.csv"
 
     # Create env
-    env, env_config = make_env(
+    env, _env_config = make_env(
         preset=args.preset,
         num_envs=args.num_envs,
         vectorize_for_cleanrl_sb3=True,
-        base_class="stable_baselines3"
+        base_class="stable_baselines3",
     )
 
     # Save config
@@ -117,14 +118,19 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
     # Evaluate
     print("\nEvaluating trained model (10 episodes)...")
     env.close()
-    eval_env, _ = make_env(preset=args.preset, num_envs=1, vectorize_for_cleanrl_sb3=True, base_class="stable_baselines3")
+    eval_env, _ = make_env(
+        preset=args.preset,
+        num_envs=1,
+        vectorize_for_cleanrl_sb3=True,
+        base_class="stable_baselines3",
+    )
 
     obs = eval_env.reset()
     eval_rewards = []
     ep_reward = 0.0
     for _ in range(500):
         action, _ = model.predict(obs, deterministic=True)
-        obs, reward, done, info = eval_env.step(action)
+        obs, reward, done, _info = eval_env.step(action)
         ep_reward += float(sum(reward))
         if any(done):
             eval_rewards.append(ep_reward)

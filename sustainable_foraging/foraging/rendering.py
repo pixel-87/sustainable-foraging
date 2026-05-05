@@ -9,10 +9,9 @@ import sys
 import numpy as np
 from gymnasium import error
 
-if "Apple" in sys.version:
-    if "DYLD_FALLBACK_LIBRARY_PATH" in os.environ:
-        os.environ["DYLD_FALLBACK_LIBRARY_PATH"] += ":/usr/lib"
-        # (JDS 2016/04/15): avoid bug on Anaconda 2.3.0 / Yosemite
+if "Apple" in sys.version and "DYLD_FALLBACK_LIBRARY_PATH" in os.environ:
+    os.environ["DYLD_FALLBACK_LIBRARY_PATH"] += ":/usr/lib"
+    # (JDS 2016/04/15): avoid bug on Anaconda 2.3.0 / Yosemite
 
 
 try:

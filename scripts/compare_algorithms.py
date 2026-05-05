@@ -14,7 +14,8 @@ import numpy as np
 def load_run(run_dir: Path):
     csv_path = run_dir / "metrics.csv"
     cfg_path = run_dir / "config.json"
-    if not csv_path.exists(): return None
+    if not csv_path.exists():
+        return None
 
     config = {}
     if cfg_path.exists():
@@ -30,7 +31,8 @@ def load_run(run_dir: Path):
             leng.append(float(row.get("length", 0) or 0))
             rem.append(float(row.get("food_remaining_end", 0) or 0))
 
-    if not ts: return None
+    if not ts:
+        return None
 
     ts = np.array(ts)
     rew = np.array(rew)
@@ -57,8 +59,9 @@ def load_run(run_dir: Path):
         "reward": rew,
         "length": leng,
         "sustainability": rem,
-        "restraint": eff
+        "restraint": eff,
     }
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -82,7 +85,7 @@ def main():
     max_global_ts = max(max(r["ts"]) for r in runs)
 
     # Prepare plots
-    plt.style.use('seaborn-v0_8-whitegrid')
+    plt.style.use("seaborn-v0_8-whitegrid")
     colors = plt.get_cmap("tab10").colors
 
     fig_all, axes = plt.subplots(1, 3, figsize=(20, 7))
@@ -93,14 +96,14 @@ def main():
     metric_specs = [
         ("length", "Episode Length", "Steps", axes[0], ax_len),
         ("sustainability", "Sustainability", "Food Remaining", axes[1], ax_sus),
-        ("reward", "Episodic Reward", "Reward Total", axes[2], ax_rew)
+        ("reward", "Episodic Reward", "Reward Total", axes[2], ax_rew),
     ]
 
     def format_axes(ax, title, ylabel):
         ax.set_title(title, fontweight="bold", fontsize=14)
         ax.set_ylabel(ylabel, fontsize=12)
         ax.set_xlabel("Timesteps", fontsize=12)
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x/1e6:g}M"))
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x / 1e6:g}M"))
         ax.grid(True, alpha=0.3)
 
     for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
@@ -111,7 +114,7 @@ def main():
     leaderboard_data = []
 
     # Sort groups alphabetically for consistent colors
-    markers = ['o', 's', '^', 'D', 'v', 'p', 'X', '*', '+']
+    markers = ["o", "s", "^", "D", "v", "p", "X", "*", "+"]
     for idx, (label, group_runs) in enumerate(sorted(groups.items())):
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
@@ -139,13 +142,15 @@ def main():
 
             # Smooth the mean and std slightly for visual clarity (window=25 out of 1000)
             def smooth(v, w=25):
-                pad = w//2
-                pv = np.pad(v, (pad, pad), mode='edge')
+                pad = w // 2
+                pv = np.pad(v, (pad, pad), mode="edge")
                 # np.convolve extends length by w-1, so we slice to match original length
-                res = np.convolve(pv, np.ones(w)/w, mode='valid')
+                res = np.convolve(pv, np.ones(w) / w, mode="valid")
                 # handle off-by-one caused by even/odd padding lengths
-                if len(res) > len(v): res = res[:len(v)]
-                elif len(res) < len(v): res = np.pad(res, (0, len(v)-len(res)), mode='edge')
+                if len(res) > len(v):
+                    res = res[: len(v)]
+                elif len(res) < len(v):
+                    res = np.pad(res, (0, len(v) - len(res)), mode="edge")
                 return res
 
             mean_smooth = smooth(mean_y)
@@ -164,16 +169,39 @@ def main():
             line_alpha = 0.5 if is_baseline else 1.0
 
             for ax in [ax_sub, ax_ind]:
-                ax.plot(algo_x_binned, mean_binned, color=color, label=label, lw=2 if is_baseline else 1.5, ls=line_style, marker=line_marker, markersize=4, alpha=line_alpha)
+                ax.plot(
+                    algo_x_binned,
+                    mean_binned,
+                    color=color,
+                    label=label,
+                    lw=2 if is_baseline else 1.5,
+                    ls=line_style,
+                    marker=line_marker,
+                    markersize=4,
+                    alpha=line_alpha,
+                )
 
                 # Only shade the standard error if it's not a baseline (baselines are flat averages here anyway)
                 if not is_baseline:
                     fill_alpha = 0.15 if ax == ax_sub else 0.25
-                    ax.fill_between(algo_x_binned, mean_binned - err_binned, mean_binned + err_binned, color=color, alpha=fill_alpha)
+                    ax.fill_between(
+                        algo_x_binned,
+                        mean_binned - err_binned,
+                        mean_binned + err_binned,
+                        color=color,
+                        alpha=fill_alpha,
+                    )
 
                 # Extension dashed line
                 if algo_max_ts < max_global_ts:
-                    ax.plot([algo_max_ts, max_global_ts], [mean_binned[-1], mean_binned[-1]], color=color, ls="--", lw=1.5, alpha=0.4)
+                    ax.plot(
+                        [algo_max_ts, max_global_ts],
+                        [mean_binned[-1], mean_binned[-1]],
+                        color=color,
+                        ls="--",
+                        lw=1.5,
+                        alpha=0.4,
+                    )
 
             final_stats[m_key] = (mean_binned[-1], err_binned[-1])
 
@@ -181,10 +209,12 @@ def main():
 
     # Add legends and layout
     handles, labels = axes[0].get_legend_handles_labels()
-    fig_all.legend(handles, labels, loc='lower center', ncol=len(groups), bbox_to_anchor=(0.5, 0.02))
+    fig_all.legend(
+        handles, labels, loc="lower center", ncol=len(groups), bbox_to_anchor=(0.5, 0.02)
+    )
 
     for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
-        ax_ind.legend(loc='best')
+        ax_ind.legend(loc="best")
 
     fig_all.tight_layout(rect=[0, 0.08, 1, 1])
     fig_len.tight_layout()
@@ -213,21 +243,47 @@ def main():
     leaderboard_data.sort(key=lambda x: x["length"][0], reverse=True)
 
     print("\n### Final Algorithm Benchmark Leaderboard\n")
-    print("| Algorithm | Episode Length (Mean ± SEM) | Sustainability (Mean ± SEM) | Episodic Reward (Mean ± SEM) |")
+    print(
+        "| Algorithm | Episode Length (Mean ± SEM) | Sustainability (Mean ± SEM) | Episodic Reward (Mean ± SEM) |"
+    )
     print("| :--- | :--- | :--- | :--- |")
     for row in leaderboard_data:
         len_m, len_s = row["length"]
         sus_m, sus_s = row["sustainability"]
         rew_m, rew_s = row["reward"]
-        print(f"| **{row['label']}** | {len_m:.2f} ± {len_s:.2f} | {sus_m:.2f} ± {sus_s:.2f} | {rew_m:.2f} ± {rew_s:.2f} |")
-    print("\nSaved graphs to logs/comparison_all.png, logs/comparison_length.png, logs/comparison_sustainability.png, logs/comparison_reward.png\n")
+        print(
+            f"| **{row['label']}** | {len_m:.2f} ± {len_s:.2f} | {sus_m:.2f} ± {sus_s:.2f} | {rew_m:.2f} ± {rew_s:.2f} |"
+        )
+    print(
+        "\nSaved graphs to logs/comparison_all.png, logs/comparison_length.png, logs/comparison_sustainability.png, logs/comparison_reward.png\n"
+    )
 
     # Export to CSV and LaTeX for dissertation
     with open(out / "dissertation_table.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Algorithm", "Episode Length (Mean)", "Episode Length (SEM)", "Sustainability (Mean)", "Sustainability (SEM)", "Episodic Reward (Mean)", "Episodic Reward (SEM)"])
+        writer.writerow(
+            [
+                "Algorithm",
+                "Episode Length (Mean)",
+                "Episode Length (SEM)",
+                "Sustainability (Mean)",
+                "Sustainability (SEM)",
+                "Episodic Reward (Mean)",
+                "Episodic Reward (SEM)",
+            ]
+        )
         for row in leaderboard_data:
-            writer.writerow([row['label'], f"{row['length'][0]:.2f}", f"{row['length'][1]:.2f}", f"{row['sustainability'][0]:.2f}", f"{row['sustainability'][1]:.2f}", f"{row['reward'][0]:.2f}", f"{row['reward'][1]:.2f}"])
+            writer.writerow(
+                [
+                    row["label"],
+                    f"{row['length'][0]:.2f}",
+                    f"{row['length'][1]:.2f}",
+                    f"{row['sustainability'][0]:.2f}",
+                    f"{row['sustainability'][1]:.2f}",
+                    f"{row['reward'][0]:.2f}",
+                    f"{row['reward'][1]:.2f}",
+                ]
+            )
 
     with open(out / "dissertation_table.typ", "w") as f:
         f.write("#figure(\n")
@@ -236,7 +292,7 @@ def main():
         f.write("    align: (left, center, center, center),\n")
         f.write("    [*Algorithm*], [*Episode Length*], [*Sustainability*], [*Episodic Reward*],\n")
         for row in leaderboard_data:
-            label = row['label'].replace('_', '\\_')
+            label = row["label"].replace("_", "\\_")
             len_str = f"{row['length'][0]:.2f} \\pm {row['length'][1]:.2f}"
             sus_str = f"{row['sustainability'][0]:.2f} \\pm {row['sustainability'][1]:.2f}"
             rew_str = f"{row['reward'][0]:.2f} \\pm {row['reward'][1]:.2f}"
@@ -245,7 +301,10 @@ def main():
         f.write("  caption: [Final benchmark results showing Mean $\\pm$ SEM across all seeds.],\n")
         f.write(") <tab:benchmark_results>\n")
 
-    print("Saved dissertation tables to logs/dissertation_table.csv and logs/dissertation_table.typ\n")
+    print(
+        "Saved dissertation tables to logs/dissertation_table.csv and logs/dissertation_table.typ\n"
+    )
+
 
 if __name__ == "__main__":
     main()

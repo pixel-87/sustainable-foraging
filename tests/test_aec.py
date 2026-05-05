@@ -150,11 +150,8 @@ def test_aec_manual_cycle():
 
     step_count = 0
     for agent in env.agent_iter(max_iter=100):
-        observation, reward, termination, truncation, info = env.last()
-        if termination or truncation:
-            action = None
-        else:
-            action = env.action_space(agent).sample()
+        _observation, _reward, termination, truncation, _info = env.last()
+        action = None if termination or truncation else env.action_space(agent).sample()
 
         env.step(action)
         step_count += 1
@@ -241,8 +238,8 @@ def test_reward_cooperative_loading(simple2p1f):
     env._gen_valid_moves()
 
     rewards_collected = []
-    for i, agent in enumerate(env.agent_iter(max_iter=2)):
-        obs, reward, term, trunc, info = env.last()
+    for i, _agent in enumerate(env.agent_iter(max_iter=2)):
+        _obs, _reward, _term, _trunc, _info = env.last()
         env.step(actions[i])
         if i == 1:  # After both actions processed
             rewards_collected = [env.players[0].reward, env.players[1].reward]
@@ -274,8 +271,8 @@ def test_reward_single_player_loading(simple2p1f):
     env._gen_valid_moves()
 
     rewards_collected = []
-    for i, agent in enumerate(env.agent_iter(max_iter=2)):
-        obs, reward, term, trunc, info = env.last()
+    for i, _agent in enumerate(env.agent_iter(max_iter=2)):
+        _obs, _reward, _term, _trunc, _info = env.last()
         env.step(actions[i])
         if i == 1:
             rewards_collected = [env.players[0].reward, env.players[1].reward]
@@ -421,7 +418,7 @@ def test_episode_termination():
     step_count = 0
 
     for agent in env.agent_iter(max_iter=50):
-        obs, reward, termination, truncation, info = env.last()
+        _obs, _reward, termination, truncation, _info = env.last()
 
         if termination or truncation:
             terminated = termination
@@ -459,13 +456,13 @@ def test_collision_detection():
     env.field[:] = 0  # Clear field
     env._gen_valid_moves()
 
-    initial_pos_0 = env.players[0].position
-    initial_pos_1 = env.players[1].position
+    env.players[0].position
+    env.players[1].position
 
     # Both try to move to the same location
     actions = [Action.EAST.value, Action.WEST.value]  # Both move towards (4,5)/(4,4)
 
-    for i, agent in enumerate(env.agent_iter(max_iter=2)):
+    for i, _agent in enumerate(env.agent_iter(max_iter=2)):
         env.step(actions[i])
 
     # Positions should not have changed due to collision
@@ -533,7 +530,7 @@ def test_loading_logic_normalization(simple2p1f):
     # Both LOAD
     # Because AEC needs to cycle through agents, we step through them
     for _ in env.agent_iter(max_iter=2):
-        obs, reward, term, trunc, info = env.last()
+        _obs, _reward, _term, _trunc, _info = env.last()
         env.step(Action.LOAD.value)
 
     # Logarithmic reward: R = k * (log(E_after) - log(E_before))

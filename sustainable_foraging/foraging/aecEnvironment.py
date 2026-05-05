@@ -12,6 +12,8 @@ from pettingzoo.utils import AgentSelector
 
 
 class Action(Enum):
+    """Discrete action space for agents."""
+
     NONE = 0
     NORTH = 1
     SOUTH = 2
@@ -21,6 +23,8 @@ class Action(Enum):
 
 
 class CellEntity(Enum):
+    """Entity encodings for grid observations."""
+
     # entity encodings for grid observations
     OUT_OF_BOUNDS = 0
     EMPTY = 1
@@ -29,6 +33,8 @@ class CellEntity(Enum):
 
 
 class Player:
+    """Represents an agent and its internal state (position, energy, score)."""
+
     def __init__(self):
         self.controller = None
         self.position = None
@@ -70,7 +76,8 @@ class Player:
 
 class ForagingEnv(AECEnv):
     """
-    A class that contains rules/actions for the game level-based foraging.
+    A PettingZoo AEC environment for sustainable foraging.
+    Agents explore a grid, consume regenerating food, and manage energy.
     """
 
     metadata: ClassVar[dict] = {
@@ -106,6 +113,7 @@ class ForagingEnv(AECEnv):
         penalty=0.0,
         render_mode=None,
     ):
+        """Initializes the environment with grid, food, and agent scaling parameters."""
         self.logger = logging.getLogger(__name__)
         self.render_mode = render_mode
         self.viewer = None

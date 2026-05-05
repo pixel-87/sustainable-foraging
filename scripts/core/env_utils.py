@@ -1,3 +1,9 @@
+"""Utility functions for environment creation and vectorization.
+
+Provides helpers to construct and parallelize the AECForagingEnv
+for use with RL libraries like Stable-Baselines3 and CleanRL.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -28,12 +34,15 @@ def custom_concat_vec_envs_v1(vec_env, num_vec_envs, num_cpus=0, base_class="gym
         return vec_env
     elif base_class == "stable_baselines":
         from supersuit.vector.sb_vector_wrapper import SBVecEnvWrapper
+
         return SBVecEnvWrapper(vec_env)
     elif base_class == "stable_baselines3":
         from supersuit.vector.sb3_vector_wrapper import SB3VecEnvWrapper
+
         return SB3VecEnvWrapper(vec_env)
     else:
         raise ValueError("base_class unsupported")
+
 
 def make_env(
     preset: str = "fair",
