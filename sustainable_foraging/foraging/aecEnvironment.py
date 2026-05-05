@@ -145,7 +145,7 @@ class ForagingEnv(AECEnv):
             E = self.food_energy_value
             K = self.max_num_food
             c = 1.5
-            
+
             f_min = (N * d * c) / E
             self.food_regeneration_rate = round(1.0 + (4.0 * f_min) / K, 4)
         else:

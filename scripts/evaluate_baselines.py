@@ -3,12 +3,10 @@ import argparse
 import csv
 import json
 import logging
-import numpy as np
 from pathlib import Path
-from tqdm import tqdm
 
-from core.env_utils import make_env
-from sustainable_foraging.foraging.aecEnvironment import Action
+import numpy as np
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,25 +26,25 @@ def greedy_policy(obs, env, agent):
         # Grid observation: shape is (3, H, W)
         # Layer 0: agents, Layer 1: foods, Layer 2: access
         player_y, player_x = obs.shape[1] // 2, obs.shape[2] // 2
-        
+
         foods_y, foods_x = np.nonzero(obs[1])
         if len(foods_y) == 0:
             return env.action_space(agent).sample()
-            
+
         min_dist = float('inf')
         closest_food = None
-        
+
         for fy, fx in zip(foods_y, foods_x):
             dist = abs(fy - player_y) + abs(fx - player_x)
             if dist < min_dist:
                 min_dist = dist
                 closest_food = (fy, fx)
-                
+
         if closest_food is None:
             return env.action_space(agent).sample()
-            
+
         fy, fx = closest_food
-        
+
     else:
         # Flat observation
         max_num_food = env.unwrapped.max_num_food
@@ -91,10 +89,10 @@ def greedy_policy(obs, env, agent):
 
 def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
     # Initialize the base AEC environment with the fair preset
+    from core.log_utils import ForagingMetricsWrapper
     from sustainable_foraging.foraging import AECForagingEnv
     from sustainable_foraging.foraging.sustainable_benchmark import get_preset
-    from core.log_utils import ForagingMetricsWrapper
-    
+
     env_config = get_preset("fair")
     env_config["sight"] = sight
     base_env = AECForagingEnv(**env_config)
@@ -108,23 +106,23 @@ def evaluate(policy_fn, policy_name, num_episodes=500, sight=2, seed=1):
     for ep in tqdm(range(num_episodes), desc=f"{policy_name} s={sight} seed={seed}"):
         if ep > 0:
             env.reset()
-        
+
         while getattr(env, "agents", None):
             agent = env.agent_selection
             obs, reward, terminated, truncated, info = env.last()
-            
+
             if terminated or truncated:
                 action = None
             else:
                 action = policy_fn(obs, env, agent)
-                
+
             env.step(action)
-            
+
             # Check if this agent finished the episode and recorded metrics
             if (terminated or truncated) and "episode_metrics" in info:
                 if len(metrics) == 0 or info["episode_metrics"] != metrics[-1]:
                     metrics.append(info["episode_metrics"])
-                    
+
     # Only keep exactly num_episodes
     metrics = metrics[:num_episodes]
 
@@ -148,7 +146,6 @@ def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5
     We linearly interpolate the episode timesteps across `total_timesteps`
     so the baselines appear as continuous flat lines on the graphs.
     """
-    import os
     run_dir = Path(f"logs/baseline_{policy_name.lower()}_{obs_type}_seed{seed}")
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -163,17 +160,17 @@ def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5
     # Write metrics.csv
     num_points = 100
     timesteps = np.linspace(0, total_timesteps, num_points, dtype=int)
-    
+
     # Calculate average metrics over all episodes
     avg_reward = np.mean([m["reward_total"] for m in metrics])
     avg_length = np.mean([m["length"] for m in metrics])
     avg_foods = np.mean([m["foods_collected"] for m in metrics])
     avg_sustainability = np.mean([m["food_remaining_end"] for m in metrics])
-    
+
     with open(run_dir / "metrics.csv", "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["timestep", "reward_total", "length", "foods_collected", "food_remaining_end"])
-        
+
         for ts in timesteps:
             writer.writerow([
                 int(ts),
@@ -182,7 +179,7 @@ def write_logs(policy_name, metrics, obs_type="pomdp", seed=1, total_timesteps=5
                 avg_foods,
                 avg_sustainability
             ])
-            
+
     logger.info(f"Saved {policy_name} logs to {run_dir}")
 
 def main():

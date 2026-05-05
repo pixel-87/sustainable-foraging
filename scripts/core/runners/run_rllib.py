@@ -15,6 +15,7 @@ from ray.tune.registry import register_env
 from scripts._bench_utils import MetricsTracker, save_experiment_config
 from scripts.core.env_utils import make_env
 
+
 class BenchmarkCallbacks(DefaultCallbacks):
     """Write episode stats to RLlib's custom metrics for driver-side logging."""
     def on_episode_end(self, *, episode: Any, env_index: int, **kwargs: Any) -> None:
@@ -86,7 +87,7 @@ def run_rllib(args: argparse.Namespace) -> None:
         result = algo.train()
         total_steps = int(result.get("timesteps_total", total_steps))
         cm = result.get("custom_metrics", {})
-        
+
         if cm and "reward_total_mean" in cm:
             stats = {
                 "reward_total": cm.get("reward_total_mean", 0),

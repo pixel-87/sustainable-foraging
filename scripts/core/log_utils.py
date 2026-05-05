@@ -40,13 +40,13 @@ class ForagingMetricsWrapper(BaseWrapper):
     def step(self, action: Any) -> None:
         agent = self.agent_selection
         was_done = self.terminations[agent] or self.truncations[agent]
-        
+
         super().step(action)
-        
+
         if not was_done:
             self._step_count += 1
             info = self.infos[agent]
-            
+
             # AEC environment updates these accumulators during the cycle.
             # We only want to add the final values at the end of the cycle (when agent is the last one).
             agent_selector = getattr(self.unwrapped, "_agent_selector", None)
@@ -57,13 +57,13 @@ class ForagingMetricsWrapper(BaseWrapper):
                 self._solo += info.get("solo_collections", 0)
                 self._failed += info.get("failed_loads", 0)
                 self._collisions += info.get("collisions", 0)
-                
+
                 for act_name, count in info.get("action_counts", {}).items():
                     self._action_counts[act_name] += count
-                    
+
                 for j, r in enumerate(info.get("per_agent_rewards", [])):
                     self._agent_rewards[f"agent_{j}"] += r
-                    
+
             self._food_remaining = info.get("food_remaining", 0)
             self._ep_reward += self.rewards[agent]
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from sustainable_foraging.foraging.aecEnvironment import Action, ForagingEnv
 from pettingzoo.test import api_test
+from sustainable_foraging.foraging.aecEnvironment import Action, ForagingEnv
 
 
 def manhattan_distance(x, y):
@@ -36,8 +36,6 @@ def simple2p1f():
 
     env.players[0].position = (4, 3)
     env.players[1].position = (4, 5)
-    env.players[0].level = 2
-    env.players[1].level = 2
 
     env._gen_valid_moves()
 
@@ -71,8 +69,6 @@ def simple2p1f_sight1():
 
     env.players[0].position = (4, 3)
     env.players[1].position = (4, 5)
-    env.players[0].level = 2
-    env.players[1].level = 2
 
     env._gen_valid_moves()
 
@@ -106,8 +102,6 @@ def simple2p1f_sight2():
 
     env.players[0].position = (4, 3)
     env.players[1].position = (4, 5)
-    env.players[0].level = 2
-    env.players[1].level = 2
 
     env._gen_valid_moves()
 
@@ -514,23 +508,6 @@ def test_swap_positions(simple2p1f):
     # P0 moves EAST (to 2,3), P1 moves WEST (to 2,2)
     env.step(Action.EAST.value)  # Agent 0
     env.step(Action.WEST.value)  # Agent 1
-
-    # Positions should swap because they don't 'collide' in AEC as their moves are processed?
-    # Wait, my refactor processes ALL buffered actions at once.
-    # If they are processed at once, and target pos is the other's current pos...
-    # My logic:
-    #   collisions = defaultdict(list)
-    #   for player, action in zip(players, actions):
-    #       target_pos = ...
-    #       collisions[target_pos].append(player)
-    #   for k, v in collisions.items():
-    #       if len(v) > 1: continue
-    #       v[0].position = k
-
-    # So if P0 targets (2,3) and P1 targets (2,2):
-    # collisions[(2,3)] = [P0] -> valid!
-    # collisions[(2,2)] = [P1] -> valid!
-    # They swap!
 
     assert env.players[0].position == (2, 3)
     assert env.players[1].position == (2, 2)

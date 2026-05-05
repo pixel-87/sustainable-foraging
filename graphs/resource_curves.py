@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 K = 2
 alpha = 1.6  # critical alpha from sustainable_benchmark.py Fair preset
@@ -76,7 +76,7 @@ plt.close()
 fig2, ax2 = plt.subplots(figsize=(10, 6))
 
 deltas = delta_r(r, foraged=0)
-ax2.plot(r, deltas, "b-", linewidth=2.5, label="Regrowth Parabola\n$\Delta r = r_{t+1} - r_t$")
+ax2.plot(r, deltas, "b-", linewidth=2.5, label="Regrowth Parabola\n$\\Delta r = r_{t+1} - r_t$")
 ax2.axhline(y=0, color="gray", linestyle="-", alpha=0.5)
 ax2.axvline(x=0, color="gray", linestyle="-", alpha=0.5)
 ax2.axvline(x=K, color="gray", linestyle=":", alpha=0.5, label=f"Carrying Capacity K={K}")
@@ -107,7 +107,7 @@ ax2.annotate(
 )
 
 ax2.set_xlabel("Current Resource Level ($r_t$)", fontsize=12)
-ax2.set_ylabel("Expected Regrowth ($\Delta r = r_{t+1} - r_t$)", fontsize=12)
+ax2.set_ylabel(r"Expected Regrowth ($\Delta r = r_{t+1} - r_t$)", fontsize=12)
 ax2.set_title(
     "Graph 2: The Regrowth Parabola\n(Why agents must keep food at exactly 1.0 to survive)",
     fontsize=14,

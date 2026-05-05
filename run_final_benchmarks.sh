@@ -31,7 +31,7 @@ run_benchmark_parallel() {
     
     # Launch all 3 seeds in the background
     for seed in 1 2 3; do
-        local run_name="${algo}_pomdp_seed${seed}"
+        local run_name="${algo}_final_seed${seed}"
         local log_dir="logs/${run_name}"
         
         # Ensure log dir exists so we can redirect output
@@ -67,7 +67,7 @@ run_benchmark_parallel() {
         # Calculate current total timesteps by reading the CSV files
         local current_total_steps=0
         for seed in 1 2 3; do
-            local run_name="${algo}_pomdp_seed${seed}"
+            local run_name="${algo}_final_seed${seed}"
             local csv_file="logs/${run_name}/metrics.csv"
             
             if [ -f "$csv_file" ]; then

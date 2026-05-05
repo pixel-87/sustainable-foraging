@@ -3,11 +3,13 @@ import argparse
 import csv
 import json
 import sys
-from pathlib import Path
 from collections import defaultdict
-import numpy as np
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
+
 
 def load_run(run_dir: Path):
     csv_path = run_dir / "metrics.csv"
@@ -22,10 +24,10 @@ def load_run(run_dir: Path):
     ts, rew, food, leng, rem = [], [], [], [], []
     with open(csv_path) as f:
         for row in csv.DictReader(f):
-            ts.append(int(row.get("timestep", 0) or 0))
+            ts.append(int(float(row.get("timestep", 0) or 0)))
             rew.append(float(row.get("reward_total", 0) or 0))
             food.append(float(row.get("foods_collected", 0) or 0))
-            leng.append(int(row.get("length", 0) or 0))
+            leng.append(float(row.get("length", 0) or 0))
             rem.append(float(row.get("food_remaining_end", 0) or 0))
 
     if not ts: return None
@@ -45,27 +47,6 @@ def load_run(run_dir: Path):
         label = algo.upper()
     else:
         label = run_dir.name.split("_")[0].upper()
-
-    if np.mean(leng) < 1.0 and len(ts) > 100:
-        w = 100
-        approx_leng = np.zeros_like(leng)
-        diff = ts[w:] - ts[:-w]
-        
-        # CleanRL QMIX/VDN advance global_step by 1 per env step and log 1 metric per parallel env
-        if "QMIX" in label or "VDN" in label:
-            # diff = 12.5 * L -> L = diff / 12.5 -> diff / 100 * 8
-            approx_leng[w:] = (diff / w) * 8
-        # CleanRL DQN advances global_step by 1 per env step and logs 2 metrics per parallel env
-        elif "DQN" in label:
-            # diff = 6.25 * L -> L = diff / 6.25 -> diff / 100 * 16
-            approx_leng[w:] = (diff / w) * 16
-        # SB3 and CleanRL MAPPO/PPO advance global_step by 16 per env step and log 2 metrics per parallel env
-        else:
-            # diff = 6.25 * 16 * L = 100 * L -> L = diff / 100
-            approx_leng[w:] = diff / w
-            
-        approx_leng[:w] = approx_leng[w]
-        leng = approx_leng
 
     eff = leng / np.maximum(food, 1.0)
 
@@ -99,7 +80,7 @@ def main():
         groups[r["label"]].append(r)
 
     max_global_ts = max(max(r["ts"]) for r in runs)
-    
+
     # Prepare plots
     plt.style.use('seaborn-v0_8-whitegrid')
     colors = plt.get_cmap("tab10").colors
@@ -134,13 +115,13 @@ def main():
     for idx, (label, group_runs) in enumerate(sorted(groups.items())):
         color = colors[idx % len(colors)]
         marker = markers[idx % len(markers)]
-        
+
         # Find max ts for this specific algorithm
         algo_max_ts = max(max(r["ts"]) for r in group_runs)
-        
+
         # Interpolate onto shared evenly spaced x-axis for this algorithm's duration
         algo_x = np.linspace(0, algo_max_ts, 1000)
-        
+
         final_stats = {"label": label}
 
         for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
@@ -148,14 +129,14 @@ def main():
             for r in group_runs:
                 interp_y = np.interp(algo_x, r["ts"], r[m_key])
                 interp_lines.append(interp_y)
-            
+
             mean_y = np.mean(interp_lines, axis=0)
             std_y = np.std(interp_lines, axis=0)
-            
+
             # Use Standard Error of the Mean (SEM) to make bands tighter
             n_runs = len(group_runs)
             err_y = std_y / np.sqrt(n_runs) if n_runs > 0 else np.zeros_like(std_y)
-            
+
             # Smooth the mean and std slightly for visual clarity (window=25 out of 1000)
             def smooth(v, w=25):
                 pad = w//2
@@ -166,7 +147,7 @@ def main():
                 if len(res) > len(v): res = res[:len(v)]
                 elif len(res) < len(v): res = np.pad(res, (0, len(v)-len(res)), mode='edge')
                 return res
-            
+
             mean_smooth = smooth(mean_y)
             err_smooth = smooth(err_y)
 
@@ -177,14 +158,22 @@ def main():
             err_binned = err_smooth.reshape(n_bins, -1).mean(axis=1)
 
             # Plot on both sub and ind
+            is_baseline = "BASELINE" in label.upper()
+            line_style = "--" if is_baseline else "-"
+            line_marker = None if is_baseline else marker
+            line_alpha = 0.5 if is_baseline else 1.0
+
             for ax in [ax_sub, ax_ind]:
-                ax.plot(algo_x_binned, mean_binned, color=color, label=label, lw=1.5, marker=marker, markersize=4)
-                fill_alpha = 0.15 if ax == ax_sub else 0.25
-                ax.fill_between(algo_x_binned, mean_binned - err_binned, mean_binned + err_binned, color=color, alpha=fill_alpha)
-                
+                ax.plot(algo_x_binned, mean_binned, color=color, label=label, lw=2 if is_baseline else 1.5, ls=line_style, marker=line_marker, markersize=4, alpha=line_alpha)
+
+                # Only shade the standard error if it's not a baseline (baselines are flat averages here anyway)
+                if not is_baseline:
+                    fill_alpha = 0.15 if ax == ax_sub else 0.25
+                    ax.fill_between(algo_x_binned, mean_binned - err_binned, mean_binned + err_binned, color=color, alpha=fill_alpha)
+
                 # Extension dashed line
                 if algo_max_ts < max_global_ts:
-                    ax.plot([algo_max_ts, max_global_ts], [mean_binned[-1], mean_binned[-1]], color=color, ls="--", lw=1.5, alpha=0.6)
+                    ax.plot([algo_max_ts, max_global_ts], [mean_binned[-1], mean_binned[-1]], color=color, ls="--", lw=1.5, alpha=0.4)
 
             final_stats[m_key] = (mean_binned[-1], err_binned[-1])
 
@@ -193,24 +182,36 @@ def main():
     # Add legends and layout
     handles, labels = axes[0].get_legend_handles_labels()
     fig_all.legend(handles, labels, loc='lower center', ncol=len(groups), bbox_to_anchor=(0.5, 0.02))
-    
+
     for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
         ax_ind.legend(loc='best')
-        
+
     fig_all.tight_layout(rect=[0, 0.08, 1, 1])
     fig_len.tight_layout()
     fig_sus.tight_layout()
     fig_rew.tight_layout()
 
     out = Path("logs")
+
+    # Save the uncropped versions for the appendix
+    fig_all.savefig(out / "comparison_all_appendix.png", dpi=200)
+    fig_len.savefig(out / "comparison_length_appendix.png", dpi=200)
+    fig_sus.savefig(out / "comparison_sustainability_appendix.png", dpi=200)
+    fig_rew.savefig(out / "comparison_reward_appendix.png", dpi=200)
+
+    # Crop the x-axis to 2M for the main figures
+    for m_key, m_title, m_ylabel, ax_sub, ax_ind in metric_specs:
+        ax_sub.set_xlim(0, 2_000_000)
+        ax_ind.set_xlim(0, 2_000_000)
+
     fig_all.savefig(out / "comparison_all.png", dpi=200)
     fig_len.savefig(out / "comparison_length.png", dpi=200)
     fig_sus.savefig(out / "comparison_sustainability.png", dpi=200)
     fig_rew.savefig(out / "comparison_reward.png", dpi=200)
-    
+
     # Leaderboard
     leaderboard_data.sort(key=lambda x: x["length"][0], reverse=True)
-    
+
     print("\n### Final Algorithm Benchmark Leaderboard\n")
     print("| Algorithm | Episode Length (Mean ± SEM) | Sustainability (Mean ± SEM) | Episodic Reward (Mean ± SEM) |")
     print("| :--- | :--- | :--- | :--- |")
@@ -243,8 +244,8 @@ def main():
         f.write("  ),\n")
         f.write("  caption: [Final benchmark results showing Mean $\\pm$ SEM across all seeds.],\n")
         f.write(") <tab:benchmark_results>\n")
-        
-    print(f"Saved dissertation tables to logs/dissertation_table.csv and logs/dissertation_table.typ\n")
+
+    print("Saved dissertation tables to logs/dissertation_table.csv and logs/dissertation_table.typ\n")
 
 if __name__ == "__main__":
     main()

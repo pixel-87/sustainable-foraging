@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from typing import Any
+
 import supersuit as ss
 from pettingzoo.utils.conversions import aec_to_parallel
-from supersuit.vector.vector_constructors import vec_env_args
 from supersuit.vector.constructors import MakeCPUAsyncConstructor
-
+from supersuit.vector.vector_constructors import vec_env_args
 from sustainable_foraging.foraging import AECForagingEnv
 from sustainable_foraging.foraging.sustainable_benchmark import get_preset
 
 from .log_utils import ForagingMetricsWrapper
+
 
 def custom_concat_vec_envs_v1(vec_env, num_vec_envs, num_cpus=0, base_class="gymnasium"):
     """Fix for supersuit's MakeCPUAsyncConstructor bug missing obs_space and act_space args."""

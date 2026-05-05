@@ -7,10 +7,10 @@ from pathlib import Path
 import numpy as np
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.callbacks import BaseCallback
+from sustainable_foraging.foraging.sustainable_benchmark import BENCHMARK_NAME
 
 from scripts._bench_utils import MetricsTracker, save_experiment_config
 from scripts.core.env_utils import make_env
-from sustainable_foraging.foraging.sustainable_benchmark import BENCHMARK_NAME
 
 
 class EpisodeMetricsCallback(BaseCallback):
@@ -25,7 +25,7 @@ class EpisodeMetricsCallback(BaseCallback):
             if "episode_metrics" in info:
                 metrics = info["episode_metrics"]
                 self._tracker.on_episode_end(self.num_timesteps, metrics)
-                
+
                 # Also log to TensorBoard
                 self.logger.record("episode/reward", metrics["reward_total"])
                 self.logger.record("episode/length", metrics["length"])
@@ -118,7 +118,7 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
     print("\nEvaluating trained model (10 episodes)...")
     env.close()
     eval_env, _ = make_env(preset=args.preset, num_envs=1, vectorize_for_cleanrl_sb3=True, base_class="stable_baselines3")
-    
+
     obs = eval_env.reset()
     eval_rewards = []
     ep_reward = 0.0
@@ -132,7 +132,7 @@ def run_sb3(args: argparse.Namespace, algorithm: str = "ppo") -> None:
             obs = eval_env.reset()
             if len(eval_rewards) >= 10:
                 break
-                
+
     if eval_rewards:
         print(f"  Eval episodes  : {len(eval_rewards)}")
         print(f"  Mean reward    : {np.mean(eval_rewards):.4f}")

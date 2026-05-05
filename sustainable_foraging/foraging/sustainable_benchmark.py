@@ -120,7 +120,7 @@ _FAIR_PARAMS: dict[str, Any] = {
     "num_food_zones": 2,
     "field_size": (8, 8),
     "max_num_food": 2,
-    "sight": 2,
+    "sight": 8,
     "max_episode_steps": 500,
     "grid_observation": True,
 }

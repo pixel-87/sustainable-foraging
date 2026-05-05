@@ -10,12 +10,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from sustainable_foraging.foraging import AECForagingEnv
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
 from scripts._bench_utils import MetricsTracker, save_experiment_config
 from scripts.core.env_utils import make_env
-from sustainable_foraging.foraging import AECForagingEnv
+
 
 # ---------------------------------------------------------------------------
 # MAPPO Network
@@ -266,7 +267,7 @@ def _run_mappo(args: argparse.Namespace) -> None:
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
-        
+
         if update % max(1, num_updates // 20) == 0 or update == num_updates:
             print(f"  Update {update:>4}/{num_updates} | Steps: {global_step:>8,}/{args.timesteps:,}")
 
@@ -333,7 +334,7 @@ def _run_dqn(args: argparse.Namespace) -> None:
 
         for i in range(num_envs_total):
             rb.add(next_obs_flat[i], new_obs_flat[i], int(actions[i]), float(reward_np[i]), bool(done_np[i]))
-            
+
             info_i = infos[i] if isinstance(infos, (list, tuple)) else infos
             if isinstance(infos, dict): info_i = infos
             if "episode_metrics" in info_i:
@@ -471,8 +472,7 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
     env_config = {"grid_observation": False}
     env, full_config = make_env(args.preset, num_envs=args.num_envs, config_overrides=env_config, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
-    
-    from sustainable_foraging.foraging import AECForagingEnv
+
     raw_env = AECForagingEnv(**full_config)
     n_agents = len(raw_env.possible_agents)
     raw_env.close()
@@ -532,17 +532,17 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
         new_obs_np, reward_np, terminated_np, truncated_np, infos = env.step(actions.flatten())
         done_np = np.logical_or(terminated_np, truncated_np)
-        
+
         new_obs_flat = new_obs_np.reshape(args.num_envs, n_agents, obs_dim)
         new_state_flat = new_obs_flat.reshape(args.num_envs, state_dim)
-        
+
         # In PZ AEC->Parallel, rewards are given per-agent. For QMIX, we sum them per environment to get global reward.
         env_rewards = reward_np.reshape(args.num_envs, n_agents).sum(axis=1)
         env_dones = done_np.reshape(args.num_envs, n_agents).any(axis=1) # Global done when any agent is done
 
         for i in range(args.num_envs):
             rb.add(next_obs_flat[i], new_obs_flat[i], next_state_flat[i], new_state_flat[i], actions[i], float(env_rewards[i]), bool(env_dones[i]))
-            
+
             # Agent i * n_agents is the first agent of the parallel env i, which should hold episode_metrics from wrapper
             idx = i * n_agents
             info_i = infos[idx] if isinstance(infos, (list, tuple)) else infos
@@ -558,7 +558,7 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
         if global_step > args.learning_starts and global_step % args.train_frequency == 0:
             s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(args.batch_size)
-            
+
             # Reshape for individual Q networks
             s_obs_batch = s_obs.view(-1, obs_dim)
             s_next_obs_batch = s_next_obs.view(-1, obs_dim)
@@ -572,7 +572,7 @@ def _run_qmix(args: argparse.Namespace) -> None:
                 next_actions = mac_out_next.argmax(dim=2, keepdim=True)
                 target_mac_out = target_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
                 target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(2)
-                
+
                 # Mixing target
                 target_tot = target_mixer(target_max_qvals, s_next_states)
                 td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (1 - s_dones.unsqueeze(1))
@@ -632,8 +632,7 @@ def _run_vdn(args: argparse.Namespace) -> None:
 
     env_config = {"grid_observation": False}
     env, full_config = make_env(args.preset, num_envs=args.num_envs, config_overrides=env_config, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
-    
-    from sustainable_foraging.foraging import AECForagingEnv
+
     raw_env = AECForagingEnv(**full_config)
     n_agents = len(raw_env.possible_agents)
     raw_env.close()
@@ -692,16 +691,16 @@ def _run_vdn(args: argparse.Namespace) -> None:
 
         new_obs_np, reward_np, terminated_np, truncated_np, infos = env.step(actions.flatten())
         done_np = np.logical_or(terminated_np, truncated_np)
-        
+
         new_obs_flat = new_obs_np.reshape(args.num_envs, n_agents, obs_dim)
         new_state_flat = new_obs_flat.reshape(args.num_envs, state_dim)
-        
+
         env_rewards = reward_np.reshape(args.num_envs, n_agents).sum(axis=1)
         env_dones = done_np.reshape(args.num_envs, n_agents).any(axis=1)
 
         for i in range(args.num_envs):
             rb.add(next_obs_flat[i], new_obs_flat[i], next_state_flat[i], new_state_flat[i], actions[i], float(env_rewards[i]), bool(env_dones[i]))
-            
+
             idx = i * n_agents
             info_i = infos[idx] if isinstance(infos, (list, tuple)) else infos
             if isinstance(infos, dict): info_i = infos
@@ -716,7 +715,7 @@ def _run_vdn(args: argparse.Namespace) -> None:
 
         if global_step > args.learning_starts and global_step % args.train_frequency == 0:
             s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(args.batch_size)
-            
+
             s_obs_batch = s_obs.view(-1, obs_dim)
             s_next_obs_batch = s_next_obs.view(-1, obs_dim)
 
@@ -728,7 +727,7 @@ def _run_vdn(args: argparse.Namespace) -> None:
                 next_actions = mac_out_next.argmax(dim=2, keepdim=True)
                 target_mac_out = target_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
                 target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(2)
-                
+
                 target_tot = target_mixer(target_max_qvals, s_next_states)
                 td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (1 - s_dones.unsqueeze(1))
 

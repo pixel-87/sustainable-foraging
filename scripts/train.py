@@ -2,24 +2,22 @@
 """Unified entry point for Sustainable Foraging benchmarking."""
 
 import argparse
-import sys
-from typing import Any
 import time
 from functools import wraps
-from sustainable_foraging.foraging.sustainable_benchmark import BENCHMARK_NAME, get_training_defaults, list_presets
+
 from scripts._bench_utils import get_standard_parser
 
 
 def time_dec(func):
-    @wraps(func)  
+    @wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()  # More precise than time.time()
-        
-        result = func(*args, **kwargs)   
-        
+
+        result = func(*args, **kwargs)
+
         end_time = time.perf_counter()
         duration = end_time - start_time
-        
+
         print(f"Executed {func.__name__} in {duration:.4f} seconds")
         return result
     return wrapper
@@ -27,7 +25,7 @@ def time_dec(func):
 
 def parse_args() -> argparse.Namespace:
     parser = get_standard_parser(description="Train agent on Sustainable Foraging (Unified Entry)")
-    
+
     # Core dispatch arguments
     parser.add_argument(
         "--library",
@@ -43,12 +41,12 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Which RL algorithm to use",
     )
-    
+
     # Add CleanRL specific args
     parser.add_argument("--seed", type=int, default=1, help="Random seed (CleanRL)")
     parser.add_argument("--cpu", action="store_true", help="Force CPU even if CUDA is available (CleanRL)")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
-    
+
     # MAPPO specifics
     parser.add_argument("--num-steps", type=int, default=128, help="Rollout length per env (CleanRL MAPPO)")
     parser.add_argument("--gae-lambda", type=float, default=0.95, help="GAE lambda (CleanRL MAPPO)")
@@ -60,7 +58,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-grad-norm", type=float, default=0.5, help="Max grad norm (CleanRL MAPPO)")
     parser.add_argument("--no-anneal-lr", action="store_false", dest="anneal_lr", help="Disable LR annealing (CleanRL MAPPO)")
     parser.set_defaults(anneal_lr=True)
-    
+
     # DQN specifics
     parser.add_argument("--buffer-size", type=int, default=50_000, help="Replay buffer size (CleanRL DQN)")
     parser.add_argument("--tau", type=float, default=1.0, help="Target network update rate (CleanRL DQN)")
@@ -76,25 +74,25 @@ def parse_args() -> argparse.Namespace:
 @time_dec
 def main() -> None:
     args = parse_args()
-    
+
     if args.library == "sb3":
         if args.algorithm not in ["ppo", "a2c"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by sb3 runner (supported: ppo, a2c).")
         from scripts.core.runners.run_sb3 import run_sb3
         run_sb3(args, algorithm=args.algorithm)
-        
+
     elif args.library == "cleanrl":
         if args.algorithm not in ["mappo", "dqn", "vdn", "qmix"]:
             raise ValueError(f"Algorithm {args.algorithm} not supported by cleanrl runner (supported: mappo, dqn, vdn, qmix).")
         from scripts.core.runners.run_cleanrl import run_cleanrl
         run_cleanrl(args, algorithm=args.algorithm)
-        
+
     elif args.library == "rllib":
         if args.algorithm != "ppo":
             raise ValueError(f"Algorithm {args.algorithm} not supported by rllib runner (supported: ppo).")
         from scripts.core.runners.run_rllib import run_rllib
         run_rllib(args)
-        
+
     else:
         raise ValueError(f"Unknown library: {args.library}")
 

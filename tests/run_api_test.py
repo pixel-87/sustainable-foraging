@@ -1,6 +1,8 @@
 import sys
-from sustainable_foraging.foraging.aecEnvironment import ForagingEnv
+
 from pettingzoo.test import api_test
+from sustainable_foraging.foraging.aecEnvironment import ForagingEnv
+
 
 def main():
     try:

@@ -1,4 +1,3 @@
-from sustainable_foraging.foraging.environment import ForagingEnv as GymForagingEnv  # noqa
 from sustainable_foraging.foraging.aecEnvironment import ForagingEnv as AECForagingEnv  # noqa
 from sustainable_foraging.foraging.sustainable_benchmark import (  # noqa
     BENCHMARK_NAME,
@@ -10,8 +9,3 @@ from sustainable_foraging.foraging.sustainable_benchmark import (  # noqa
     get_training_defaults,
     list_presets,
 )
-
-# Keep the Gym-style `ForagingEnv` as the package default so `gym.make` works.
-ForagingEnv = GymForagingEnv
-
-# If you want the PettingZoo AEC implementation, import `AECForagingEnv`.
