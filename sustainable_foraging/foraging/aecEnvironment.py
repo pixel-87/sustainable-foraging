@@ -8,7 +8,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.utils import seeding
 from pettingzoo import AECEnv
-from pettingzoo.utils import AgentSelector
+from pettingzoo.utils import agent_selector
 
 
 class Action(Enum):
@@ -185,7 +185,7 @@ class ForagingEnv(AECEnv):
         self.agent_name_mapping = dict(
             zip(self.possible_agents, list(range(len(self.possible_agents))))
         )
-        self._agent_selector = AgentSelector(self.possible_agents)
+        self._agent_selector = agent_selector(self.possible_agents)
 
         self.action_spaces = {agent: gym.spaces.Discrete(6) for agent in self.possible_agents}
         self.observation_spaces = {
@@ -637,7 +637,7 @@ class ForagingEnv(AECEnv):
         self.truncations = {agent: False for agent in self.agents}
         self.infos = {agent: {} for agent in self.agents}
 
-        self._agent_selector = AgentSelector(self.agents)
+        self._agent_selector = agent_selector(self.agents)
         self.agent_selection = self._agent_selector.reset()
         self._actions = {agent: None for agent in self.agents}
 

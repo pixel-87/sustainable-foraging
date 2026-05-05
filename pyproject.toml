@@ -7,7 +7,7 @@ name = "sustainable-foraging"
 version = "2.0.0"
 description = "Sustainable Foraging environment for multi-agent RL"
 readme = "README.md"
-license = "Apache-2.0"
+license = {text = "Apache-2.0"}
 authors = [
   { name = "Filippos Christianos" },
 ]
