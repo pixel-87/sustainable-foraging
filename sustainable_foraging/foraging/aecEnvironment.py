@@ -13,6 +13,7 @@ from pettingzoo.utils import AgentSelector
 
 class Action(Enum):
     """Discrete action space for agents."""
+
     NONE = 0
     NORTH = 1
     SOUTH = 2
@@ -23,6 +24,7 @@ class Action(Enum):
 
 class CellEntity(Enum):
     """Entity encodings for grid observations."""
+
     # entity encodings for grid observations
     OUT_OF_BOUNDS = 0
     EMPTY = 1
@@ -32,6 +34,7 @@ class CellEntity(Enum):
 
 class Player:
     """Represents an agent and its internal state (position, energy, score)."""
+
     def __init__(self):
         self.controller = None
         self.position = None

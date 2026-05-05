@@ -2,6 +2,7 @@
 Metrics accumulation wrapper for the PettingZoo AEC environment.
 Tracks episode-level rewards, food collection, and agent actions.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
