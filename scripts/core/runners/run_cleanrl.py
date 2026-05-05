@@ -26,6 +26,7 @@ def layer_init(layer: nn.Module, std: float = np.sqrt(2), bias_const: float = 0.
     nn.init.constant_(layer.bias, bias_const)
     return layer
 
+
 class MAPPOAgent(nn.Module):
     def __init__(self, obs_dim: int, act_dim: int):
         super().__init__()
@@ -56,6 +57,7 @@ class MAPPOAgent(nn.Module):
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
 
+
 # ---------------------------------------------------------------------------
 # DQN Network & Buffer
 # ---------------------------------------------------------------------------
@@ -72,6 +74,7 @@ class DQNNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
+
 
 class ReplayBuffer:
     def __init__(self, capacity: int, obs_dim: int, device: torch.device):
@@ -104,9 +107,11 @@ class ReplayBuffer:
             torch.as_tensor(self.dones[idxs], device=self.device),
         )
 
+
 def linear_schedule(start_e: float, end_e: float, duration: int, t: int) -> float:
     slope = (end_e - start_e) / duration
     return max(slope * t + start_e, end_e)
+
 
 # ---------------------------------------------------------------------------
 # Main Runner
@@ -121,7 +126,8 @@ def run_cleanrl(args: argparse.Namespace, algorithm: str) -> None:
     elif algorithm == "qmix":
         _run_qmix(args)
     else:
-            raise ValueError(f"CleanRL doesn't support {algorithm}")
+        raise ValueError(f"CleanRL doesn't support {algorithm}")
+
 
 def _run_mappo(args: argparse.Namespace) -> None:
     run_name = args.name or f"cleanrl_mappo_{time.strftime('%Y%m%d_%H%M%S')}"
@@ -134,7 +140,9 @@ def _run_mappo(args: argparse.Namespace) -> None:
     torch.backends.cudnn.deterministic = True
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
 
-    env, _ = make_env(args.preset, num_envs=args.num_envs, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
+    env, _ = make_env(
+        args.preset, num_envs=args.num_envs, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus
+    )
     obs_dim = int(np.prod(env.observation_space.shape))
     act_dim = int(env.action_space.n)
     num_envs_total = env.num_envs
@@ -145,11 +153,22 @@ def _run_mappo(args: argparse.Namespace) -> None:
 
     tracker = MetricsTracker(log_dir / "metrics.csv")
     save_experiment_config(
-        log_dir, run_name, args.preset, algorithm="MAPPO", library="CleanRL",
-        total_timesteps=args.timesteps, learning_rate=args.lr, num_envs=args.num_envs,
-        batch_size=args.batch_size, num_steps=args.num_steps, gamma=args.gamma,
-        gae_lambda=args.gae_lambda, num_minibatches=args.num_minibatches,
-        update_epochs=args.update_epochs, clip_coef=args.clip_coef, ent_coef=args.ent_coef,
+        log_dir,
+        run_name,
+        args.preset,
+        algorithm="MAPPO",
+        library="CleanRL",
+        total_timesteps=args.timesteps,
+        learning_rate=args.lr,
+        num_envs=args.num_envs,
+        batch_size=args.batch_size,
+        num_steps=args.num_steps,
+        gamma=args.gamma,
+        gae_lambda=args.gae_lambda,
+        num_minibatches=args.num_minibatches,
+        update_epochs=args.update_epochs,
+        clip_coef=args.clip_coef,
+        ent_coef=args.ent_coef,
         vf_coef=args.vf_coef,
     )
     writer = SummaryWriter(log_dir / "tb")
@@ -165,9 +184,11 @@ def _run_mappo(args: argparse.Namespace) -> None:
     values_buf = torch.zeros((args.num_steps, num_envs_total), device=device)
 
     global_step = 0
-    start_time = time.time()
+    time.time()
     next_obs_np, _ = env.reset()
-    next_obs = torch.tensor(next_obs_np, dtype=torch.float32, device=device).reshape(num_envs_total, -1)
+    next_obs = torch.tensor(next_obs_np, dtype=torch.float32, device=device).reshape(
+        num_envs_total, -1
+    )
     next_done = torch.zeros(num_envs_total, device=device)
 
     print(f"CleanRL MAPPO | {args.timesteps:,} steps | preset={args.preset}")
@@ -192,21 +213,30 @@ def _run_mappo(args: argparse.Namespace) -> None:
             actions_buf[step] = action
             logprobs_buf[step] = logprob
 
-            next_obs_np, reward_np, terminated_np, truncated_np, infos = env.step(action.cpu().numpy())
+            next_obs_np, reward_np, terminated_np, truncated_np, infos = env.step(
+                action.cpu().numpy()
+            )
             done_np = np.logical_or(terminated_np, truncated_np)
             rewards_buf[step] = torch.tensor(reward_np, dtype=torch.float32, device=device)
-            next_obs = torch.tensor(next_obs_np, dtype=torch.float32, device=device).reshape(num_envs_total, -1)
+            next_obs = torch.tensor(next_obs_np, dtype=torch.float32, device=device).reshape(
+                num_envs_total, -1
+            )
             next_done = torch.tensor(done_np, dtype=torch.float32, device=device)
 
             for i in range(num_envs_total):
                 info_i = infos[i] if isinstance(infos, (list, tuple)) else infos
-                if isinstance(infos, dict): info_i = infos
+                if isinstance(infos, dict):
+                    info_i = infos
                 if "episode_metrics" in info_i:
                     metrics = info_i["episode_metrics"]
                     tracker.on_episode_end(global_step, metrics)
-                    writer.add_scalar("charts/episodic_return", metrics["reward_total"], global_step)
+                    writer.add_scalar(
+                        "charts/episodic_return", metrics["reward_total"], global_step
+                    )
                     writer.add_scalar("charts/episodic_length", metrics["length"], global_step)
-                    writer.add_scalar("charts/foods_collected", metrics["foods_collected"], global_step)
+                    writer.add_scalar(
+                        "charts/foods_collected", metrics["foods_collected"], global_step
+                    )
 
         with torch.no_grad():
             next_value = agent.get_value(next_obs).flatten()
@@ -220,7 +250,9 @@ def _run_mappo(args: argparse.Namespace) -> None:
                     nextnonterminal = 1.0 - dones_buf[t + 1]
                     nextvalues = values_buf[t + 1]
                 delta = rewards_buf[t] + args.gamma * nextvalues * nextnonterminal - values_buf[t]
-                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                advantages[t] = lastgaelam = (
+                    delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                )
             returns = advantages + values_buf
 
         b_obs = obs_buf.reshape(-1, obs_dim)
@@ -228,29 +260,35 @@ def _run_mappo(args: argparse.Namespace) -> None:
         b_actions = actions_buf.reshape(-1)
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
-        b_values = values_buf.reshape(-1)
+        values_buf.reshape(-1)
 
         b_inds = np.arange(batch_size)
         clipfracs = []
-        for epoch in range(args.update_epochs):
+        for _epoch in range(args.update_epochs):
             np.random.shuffle(b_inds)
             for start in range(0, batch_size, minibatch_size):
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(
+                    b_obs[mb_inds], b_actions[mb_inds]
+                )
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
                 with torch.no_grad():
-                    approx_kl = ((ratio - 1) - logratio).mean().item()
+                    ((ratio - 1) - logratio).mean().item()
                     clipfracs.append(((ratio - 1.0).abs() > args.clip_coef).float().mean().item())
 
                 mb_advantages = b_advantages[mb_inds]
-                mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+                mb_advantages = (mb_advantages - mb_advantages.mean()) / (
+                    mb_advantages.std() + 1e-8
+                )
 
                 pg_loss1 = -mb_advantages * ratio
-                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
+                pg_loss2 = -mb_advantages * torch.clamp(
+                    ratio, 1 - args.clip_coef, 1 + args.clip_coef
+                )
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
                 newvalue = newvalue.view(-1)
@@ -269,13 +307,16 @@ def _run_mappo(args: argparse.Namespace) -> None:
         writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
 
         if update % max(1, num_updates // 20) == 0 or update == num_updates:
-            print(f"  Update {update:>4}/{num_updates} | Steps: {global_step:>8,}/{args.timesteps:,}")
+            print(
+                f"  Update {update:>4}/{num_updates} | Steps: {global_step:>8,}/{args.timesteps:,}"
+            )
 
     model_path = log_dir / "model.pt"
     torch.save(agent.state_dict(), model_path)
     tracker.close()
     writer.close()
     env.close()
+
 
 def _run_dqn(args: argparse.Namespace) -> None:
     run_name = args.name or f"cleanrl_dqn_{time.strftime('%Y%m%d_%H%M%S')}"
@@ -288,18 +329,35 @@ def _run_dqn(args: argparse.Namespace) -> None:
     torch.backends.cudnn.deterministic = True
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
 
-    env, _ = make_env(args.preset, num_envs=args.num_envs, config_overrides={"grid_observation": False}, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
+    env, _ = make_env(
+        args.preset,
+        num_envs=args.num_envs,
+        config_overrides={"grid_observation": False},
+        vectorize_for_cleanrl_sb3=True,
+        num_cpus=args.num_cpus,
+    )
     obs_dim = int(np.prod(env.observation_space.shape))
     act_dim = int(env.action_space.n)
     num_envs_total = env.num_envs
 
     tracker = MetricsTracker(log_dir / "metrics.csv")
     save_experiment_config(
-        log_dir, run_name, args.preset, algorithm="DQN", library="CleanRL",
-        total_timesteps=args.timesteps, learning_rate=args.lr, num_envs=args.num_envs,
-        batch_size=args.batch_size, buffer_size=args.buffer_size, gamma=args.gamma,
-        tau=args.tau, target_network_frequency=args.target_network_frequency,
-        start_epsilon=args.start_e, end_epsilon=args.end_e, exploration_fraction=args.exploration_fraction,
+        log_dir,
+        run_name,
+        args.preset,
+        algorithm="DQN",
+        library="CleanRL",
+        total_timesteps=args.timesteps,
+        learning_rate=args.lr,
+        num_envs=args.num_envs,
+        batch_size=args.batch_size,
+        buffer_size=args.buffer_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        target_network_frequency=args.target_network_frequency,
+        start_epsilon=args.start_e,
+        end_epsilon=args.end_e,
+        exploration_fraction=args.exploration_fraction,
     )
     writer = SummaryWriter(log_dir / "tb")
 
@@ -319,7 +377,9 @@ def _run_dqn(args: argparse.Namespace) -> None:
     print(f"  device={device}\n")
 
     for global_step in range(1, args.timesteps + 1):
-        epsilon = linear_schedule(args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step)
+        epsilon = linear_schedule(
+            args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step
+        )
 
         obs_tensor = torch.tensor(next_obs_flat, dtype=torch.float32, device=device)
         if random.random() < epsilon:
@@ -333,10 +393,17 @@ def _run_dqn(args: argparse.Namespace) -> None:
         new_obs_flat = new_obs_np.reshape(num_envs_total, -1)
 
         for i in range(num_envs_total):
-            rb.add(next_obs_flat[i], new_obs_flat[i], int(actions[i]), float(reward_np[i]), bool(done_np[i]))
+            rb.add(
+                next_obs_flat[i],
+                new_obs_flat[i],
+                int(actions[i]),
+                float(reward_np[i]),
+                bool(done_np[i]),
+            )
 
             info_i = infos[i] if isinstance(infos, (list, tuple)) else infos
-            if isinstance(infos, dict): info_i = infos
+            if isinstance(infos, dict):
+                info_i = infos
             if "episode_metrics" in info_i:
                 metrics = info_i["episode_metrics"]
                 tracker.on_episode_end(global_step, metrics)
@@ -355,7 +422,12 @@ def _run_dqn(args: argparse.Namespace) -> None:
 
             optimizer.zero_grad()
             loss.backward()
-            nn.utils.clip_grad_norm_(list(q_network.parameters()) + list(mixer.parameters()) if 'mixer' in locals() else q_network.parameters(), getattr(args, "max_grad_norm", 10.0))
+            nn.utils.clip_grad_norm_(
+                list(q_network.parameters()) + list(mixer.parameters())
+                if "mixer" in locals()
+                else q_network.parameters(),
+                getattr(args, "max_grad_norm", 10.0),
+            )
             optimizer.step()
 
         if global_step > args.learning_starts and global_step % args.target_network_frequency == 0:
@@ -363,11 +435,15 @@ def _run_dqn(args: argparse.Namespace) -> None:
                 target_network.load_state_dict(q_network.state_dict())
             else:
                 for target_param, param in zip(target_network.parameters(), q_network.parameters()):
-                    target_param.data.copy_(args.tau * param.data + (1.0 - args.tau) * target_param.data)
+                    target_param.data.copy_(
+                        args.tau * param.data + (1.0 - args.tau) * target_param.data
+                    )
 
         if global_step % max(1, args.timesteps // 20) == 0:
-            current_loss = loss.item() if 'loss' in locals() else 0.0
-            print(f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}")
+            current_loss = loss.item() if "loss" in locals() else 0.0
+            print(
+                f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}"
+            )
 
     model_path = log_dir / "model.pt"
     torch.save(q_network.state_dict(), model_path)
@@ -389,19 +465,19 @@ class QMixer(nn.Module):
         self.hyper_w_1 = nn.Sequential(
             layer_init(nn.Linear(self.state_dim, self.embed_dim)),
             nn.ReLU(),
-            layer_init(nn.Linear(self.embed_dim, self.embed_dim * self.n_agents), std=0.01)
+            layer_init(nn.Linear(self.embed_dim, self.embed_dim * self.n_agents), std=0.01),
         )
         self.hyper_w_final = nn.Sequential(
             layer_init(nn.Linear(self.state_dim, self.embed_dim)),
             nn.ReLU(),
-            layer_init(nn.Linear(self.embed_dim, self.embed_dim), std=0.01)
+            layer_init(nn.Linear(self.embed_dim, self.embed_dim), std=0.01),
         )
 
         self.hyper_b_1 = layer_init(nn.Linear(self.state_dim, self.embed_dim))
         self.V = nn.Sequential(
             layer_init(nn.Linear(self.state_dim, self.embed_dim)),
             nn.ReLU(),
-            layer_init(nn.Linear(self.embed_dim, 1))
+            layer_init(nn.Linear(self.embed_dim, 1)),
         )
 
     def forward(self, agent_qs, states):
@@ -422,8 +498,11 @@ class QMixer(nn.Module):
         q_tot = y.view(bs, -1)
         return q_tot
 
+
 class QMixReplayBuffer:
-    def __init__(self, capacity: int, n_agents: int, obs_dim: int, state_dim: int, device: torch.device):
+    def __init__(
+        self, capacity: int, n_agents: int, obs_dim: int, state_dim: int, device: torch.device
+    ):
         self.capacity = capacity
         self.device = device
         self.pos = 0
@@ -459,6 +538,7 @@ class QMixReplayBuffer:
             torch.as_tensor(self.dones[idxs], device=self.device),
         )
 
+
 def _run_qmix(args: argparse.Namespace) -> None:
     run_name = args.name or f"cleanrl_qmix_{time.strftime('%Y%m%d_%H%M%S')}"
     log_dir = Path("logs") / run_name
@@ -471,7 +551,13 @@ def _run_qmix(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
 
     env_config = {"grid_observation": False}
-    env, full_config = make_env(args.preset, num_envs=args.num_envs, config_overrides=env_config, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
+    env, full_config = make_env(
+        args.preset,
+        num_envs=args.num_envs,
+        config_overrides=env_config,
+        vectorize_for_cleanrl_sb3=True,
+        num_cpus=args.num_cpus,
+    )
 
     raw_env = AECForagingEnv(**full_config)
     n_agents = len(raw_env.possible_agents)
@@ -484,11 +570,22 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
     tracker = MetricsTracker(log_dir / "metrics.csv")
     save_experiment_config(
-        log_dir, run_name, args.preset, algorithm="QMIX", library="CleanRL",
-        total_timesteps=args.timesteps, learning_rate=args.lr, num_envs=args.num_envs,
-        batch_size=args.batch_size, buffer_size=args.buffer_size, gamma=args.gamma,
-        tau=args.tau, target_network_frequency=args.target_network_frequency,
-        start_epsilon=args.start_e, end_epsilon=args.end_e, exploration_fraction=args.exploration_fraction,
+        log_dir,
+        run_name,
+        args.preset,
+        algorithm="QMIX",
+        library="CleanRL",
+        total_timesteps=args.timesteps,
+        learning_rate=args.lr,
+        num_envs=args.num_envs,
+        batch_size=args.batch_size,
+        buffer_size=args.buffer_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        target_network_frequency=args.target_network_frequency,
+        start_epsilon=args.start_e,
+        end_epsilon=args.end_e,
+        exploration_fraction=args.exploration_fraction,
     )
     writer = SummaryWriter(log_dir / "tb")
 
@@ -515,7 +612,9 @@ def _run_qmix(args: argparse.Namespace) -> None:
     print(f"  device={device}\n")
 
     for global_step in range(1, args.timesteps + 1):
-        epsilon = linear_schedule(args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step)
+        epsilon = linear_schedule(
+            args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step
+        )
 
         obs_tensor = torch.tensor(next_obs_flat, dtype=torch.float32, device=device)
         actions = np.zeros((args.num_envs, n_agents), dtype=np.int64)
@@ -538,15 +637,26 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
         # In PZ AEC->Parallel, rewards are given per-agent. For QMIX, we sum them per environment to get global reward.
         env_rewards = reward_np.reshape(args.num_envs, n_agents).sum(axis=1)
-        env_dones = done_np.reshape(args.num_envs, n_agents).any(axis=1) # Global done when any agent is done
+        env_dones = done_np.reshape(args.num_envs, n_agents).any(
+            axis=1
+        )  # Global done when any agent is done
 
         for i in range(args.num_envs):
-            rb.add(next_obs_flat[i], new_obs_flat[i], next_state_flat[i], new_state_flat[i], actions[i], float(env_rewards[i]), bool(env_dones[i]))
+            rb.add(
+                next_obs_flat[i],
+                new_obs_flat[i],
+                next_state_flat[i],
+                new_state_flat[i],
+                actions[i],
+                float(env_rewards[i]),
+                bool(env_dones[i]),
+            )
 
             # Agent i * n_agents is the first agent of the parallel env i, which should hold episode_metrics from wrapper
             idx = i * n_agents
             info_i = infos[idx] if isinstance(infos, (list, tuple)) else infos
-            if isinstance(infos, dict): info_i = infos
+            if isinstance(infos, dict):
+                info_i = infos
             if "episode_metrics" in info_i:
                 metrics = info_i["episode_metrics"]
                 tracker.on_episode_end(global_step, metrics)
@@ -557,7 +667,9 @@ def _run_qmix(args: argparse.Namespace) -> None:
         next_state_flat = new_state_flat
 
         if global_step > args.learning_starts and global_step % args.train_frequency == 0:
-            s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(args.batch_size)
+            s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(
+                args.batch_size
+            )
 
             # Reshape for individual Q networks
             s_obs_batch = s_obs.view(-1, obs_dim)
@@ -565,17 +677,25 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
             # Get current Q values
             mac_out = q_network(s_obs_batch).view(args.batch_size, n_agents, act_dim)
-            chosen_action_qvals = torch.gather(mac_out, dim=2, index=s_actions.unsqueeze(2)).squeeze(2)
+            chosen_action_qvals = torch.gather(
+                mac_out, dim=2, index=s_actions.unsqueeze(2)
+            ).squeeze(2)
 
             with torch.no_grad():
                 mac_out_next = q_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
                 next_actions = mac_out_next.argmax(dim=2, keepdim=True)
-                target_mac_out = target_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
-                target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(2)
+                target_mac_out = target_network(s_next_obs_batch).view(
+                    args.batch_size, n_agents, act_dim
+                )
+                target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(
+                    2
+                )
 
                 # Mixing target
                 target_tot = target_mixer(target_max_qvals, s_next_states)
-                td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (1 - s_dones.unsqueeze(1))
+                td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (
+                    1 - s_dones.unsqueeze(1)
+                )
 
             # Mixing current
             chosen_action_qvals_tot = mixer(chosen_action_qvals, s_states)
@@ -583,7 +703,12 @@ def _run_qmix(args: argparse.Namespace) -> None:
 
             optimizer.zero_grad()
             loss.backward()
-            nn.utils.clip_grad_norm_(list(q_network.parameters()) + list(mixer.parameters()) if 'mixer' in locals() else q_network.parameters(), getattr(args, "max_grad_norm", 10.0))
+            nn.utils.clip_grad_norm_(
+                list(q_network.parameters()) + list(mixer.parameters())
+                if "mixer" in locals()
+                else q_network.parameters(),
+                getattr(args, "max_grad_norm", 10.0),
+            )
             optimizer.step()
 
         if global_step > args.learning_starts and global_step % args.target_network_frequency == 0:
@@ -592,13 +717,19 @@ def _run_qmix(args: argparse.Namespace) -> None:
                 target_mixer.load_state_dict(mixer.state_dict())
             else:
                 for target_param, param in zip(target_network.parameters(), q_network.parameters()):
-                    target_param.data.copy_(args.tau * param.data + (1.0 - args.tau) * target_param.data)
+                    target_param.data.copy_(
+                        args.tau * param.data + (1.0 - args.tau) * target_param.data
+                    )
                 for target_param, param in zip(target_mixer.parameters(), mixer.parameters()):
-                    target_param.data.copy_(args.tau * param.data + (1.0 - args.tau) * target_param.data)
+                    target_param.data.copy_(
+                        args.tau * param.data + (1.0 - args.tau) * target_param.data
+                    )
 
         if global_step % max(1, args.timesteps // 20) == 0:
-            current_loss = loss.item() if 'loss' in locals() else 0.0
-            print(f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}")
+            current_loss = loss.item() if "loss" in locals() else 0.0
+            print(
+                f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}"
+            )
 
     model_path = log_dir / "model.pt"
     torch.save({"q_net": q_network.state_dict(), "mixer": mixer.state_dict()}, model_path)
@@ -619,6 +750,7 @@ class VDNMixer(nn.Module):
             return agent_qs.sum(dim=2)
         return agent_qs.sum(dim=1, keepdim=True)
 
+
 def _run_vdn(args: argparse.Namespace) -> None:
     run_name = args.name or f"cleanrl_vdn_{time.strftime('%Y%m%d_%H%M%S')}"
     log_dir = Path("logs") / run_name
@@ -631,7 +763,13 @@ def _run_vdn(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
 
     env_config = {"grid_observation": False}
-    env, full_config = make_env(args.preset, num_envs=args.num_envs, config_overrides=env_config, vectorize_for_cleanrl_sb3=True, num_cpus=args.num_cpus)
+    env, full_config = make_env(
+        args.preset,
+        num_envs=args.num_envs,
+        config_overrides=env_config,
+        vectorize_for_cleanrl_sb3=True,
+        num_cpus=args.num_cpus,
+    )
 
     raw_env = AECForagingEnv(**full_config)
     n_agents = len(raw_env.possible_agents)
@@ -644,11 +782,22 @@ def _run_vdn(args: argparse.Namespace) -> None:
 
     tracker = MetricsTracker(log_dir / "metrics.csv")
     save_experiment_config(
-        log_dir, run_name, args.preset, algorithm="VDN", library="CleanRL",
-        total_timesteps=args.timesteps, learning_rate=args.lr, num_envs=args.num_envs,
-        batch_size=args.batch_size, buffer_size=args.buffer_size, gamma=args.gamma,
-        tau=args.tau, target_network_frequency=args.target_network_frequency,
-        start_epsilon=args.start_e, end_epsilon=args.end_e, exploration_fraction=args.exploration_fraction,
+        log_dir,
+        run_name,
+        args.preset,
+        algorithm="VDN",
+        library="CleanRL",
+        total_timesteps=args.timesteps,
+        learning_rate=args.lr,
+        num_envs=args.num_envs,
+        batch_size=args.batch_size,
+        buffer_size=args.buffer_size,
+        gamma=args.gamma,
+        tau=args.tau,
+        target_network_frequency=args.target_network_frequency,
+        start_epsilon=args.start_e,
+        end_epsilon=args.end_e,
+        exploration_fraction=args.exploration_fraction,
     )
     writer = SummaryWriter(log_dir / "tb")
 
@@ -675,7 +824,9 @@ def _run_vdn(args: argparse.Namespace) -> None:
     print(f"  device={device}\n")
 
     for global_step in range(1, args.timesteps + 1):
-        epsilon = linear_schedule(args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step)
+        epsilon = linear_schedule(
+            args.start_e, args.end_e, int(args.exploration_fraction * args.timesteps), global_step
+        )
 
         obs_tensor = torch.tensor(next_obs_flat, dtype=torch.float32, device=device)
         actions = np.zeros((args.num_envs, n_agents), dtype=np.int64)
@@ -699,11 +850,20 @@ def _run_vdn(args: argparse.Namespace) -> None:
         env_dones = done_np.reshape(args.num_envs, n_agents).any(axis=1)
 
         for i in range(args.num_envs):
-            rb.add(next_obs_flat[i], new_obs_flat[i], next_state_flat[i], new_state_flat[i], actions[i], float(env_rewards[i]), bool(env_dones[i]))
+            rb.add(
+                next_obs_flat[i],
+                new_obs_flat[i],
+                next_state_flat[i],
+                new_state_flat[i],
+                actions[i],
+                float(env_rewards[i]),
+                bool(env_dones[i]),
+            )
 
             idx = i * n_agents
             info_i = infos[idx] if isinstance(infos, (list, tuple)) else infos
-            if isinstance(infos, dict): info_i = infos
+            if isinstance(infos, dict):
+                info_i = infos
             if "episode_metrics" in info_i:
                 metrics = info_i["episode_metrics"]
                 tracker.on_episode_end(global_step, metrics)
@@ -714,29 +874,44 @@ def _run_vdn(args: argparse.Namespace) -> None:
         next_state_flat = new_state_flat
 
         if global_step > args.learning_starts and global_step % args.train_frequency == 0:
-            s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(args.batch_size)
+            s_obs, s_next_obs, s_states, s_next_states, s_actions, s_rewards, s_dones = rb.sample(
+                args.batch_size
+            )
 
             s_obs_batch = s_obs.view(-1, obs_dim)
             s_next_obs_batch = s_next_obs.view(-1, obs_dim)
 
             mac_out = q_network(s_obs_batch).view(args.batch_size, n_agents, act_dim)
-            chosen_action_qvals = torch.gather(mac_out, dim=2, index=s_actions.unsqueeze(2)).squeeze(2)
+            chosen_action_qvals = torch.gather(
+                mac_out, dim=2, index=s_actions.unsqueeze(2)
+            ).squeeze(2)
 
             with torch.no_grad():
                 mac_out_next = q_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
                 next_actions = mac_out_next.argmax(dim=2, keepdim=True)
-                target_mac_out = target_network(s_next_obs_batch).view(args.batch_size, n_agents, act_dim)
-                target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(2)
+                target_mac_out = target_network(s_next_obs_batch).view(
+                    args.batch_size, n_agents, act_dim
+                )
+                target_max_qvals = torch.gather(target_mac_out, dim=2, index=next_actions).squeeze(
+                    2
+                )
 
                 target_tot = target_mixer(target_max_qvals, s_next_states)
-                td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (1 - s_dones.unsqueeze(1))
+                td_target = s_rewards.unsqueeze(1) + args.gamma * target_tot * (
+                    1 - s_dones.unsqueeze(1)
+                )
 
             chosen_action_qvals_tot = mixer(chosen_action_qvals, s_states)
             loss = F.mse_loss(chosen_action_qvals_tot, td_target.detach())
 
             optimizer.zero_grad()
             loss.backward()
-            nn.utils.clip_grad_norm_(list(q_network.parameters()) + list(mixer.parameters()) if 'mixer' in locals() else q_network.parameters(), getattr(args, "max_grad_norm", 10.0))
+            nn.utils.clip_grad_norm_(
+                list(q_network.parameters()) + list(mixer.parameters())
+                if "mixer" in locals()
+                else q_network.parameters(),
+                getattr(args, "max_grad_norm", 10.0),
+            )
             optimizer.step()
 
         if global_step > args.learning_starts and global_step % args.target_network_frequency == 0:
@@ -745,11 +920,15 @@ def _run_vdn(args: argparse.Namespace) -> None:
                 target_mixer.load_state_dict(mixer.state_dict())
             else:
                 for target_param, param in zip(target_network.parameters(), q_network.parameters()):
-                    target_param.data.copy_(args.tau * param.data + (1.0 - args.tau) * target_param.data)
+                    target_param.data.copy_(
+                        args.tau * param.data + (1.0 - args.tau) * target_param.data
+                    )
 
         if global_step % max(1, args.timesteps // 20) == 0:
-            current_loss = loss.item() if 'loss' in locals() else 0.0
-            print(f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}")
+            current_loss = loss.item() if "loss" in locals() else 0.0
+            print(
+                f"  Steps: {global_step:>8,}/{args.timesteps:,} | Loss: {current_loss:>7.4f} | Epsilon: {epsilon:.4f}"
+            )
 
     model_path = log_dir / "model.pt"
     torch.save({"q_net": q_network.state_dict(), "mixer": mixer.state_dict()}, model_path)

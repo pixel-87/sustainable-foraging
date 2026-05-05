@@ -27,8 +27,10 @@ def main():
     except Exception as e:
         print(f"API test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
